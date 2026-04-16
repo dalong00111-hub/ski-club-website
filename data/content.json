@@ -1,0 +1,1197 @@
+{
+  "club": {
+    "name": "极运龙城×趣滑雪俱乐部",
+    "foundedYear": "2012",
+    "description": "专业滑雪培训"
+  },
+  "header": {
+    "logo": "极运龙城×趣滑雪俱乐部",
+    "phone": "18003411633",
+    "wechat": "私信获取"
+  },
+  "hero": {
+    "title": "极运龙城×趣滑雪俱乐部",
+    "subtitle": "山西省太原市专业滑雪培训品牌",
+    "slides": [
+      {
+        "id": 1,
+        "image": "uploads/slide_1.jpeg",
+        "alt": "滑雪",
+        "title": "授牌启航",
+        "description": "正式授牌滑雪人才基地，聚力培育冰雪运动新力量。\n",
+        "buttonText": "了解课程",
+        "buttonLink": "courses.html"
+      },
+      {
+        "id": 2,
+        "image": "uploads/extracted_0_slides_1.jpeg",
+        "title": "成就梦想",
+        "description": "多名学员荣获国家一级，二级运动员称号"
+      },
+      {
+        "id": 3,
+        "image": "uploads/extracted_1_slides_2.jpeg",
+        "title": "专业护航",
+        "description": "凝心聚力，专业执教，为每一位队员保驾护航。"
+      },
+      {
+        "id": 4,
+        "image": "uploads/extracted_2_slides_3.jpeg",
+        "title": "雪梦同行",
+        "description": "专业教练团队集结，用热爱与实力，成就你的滑雪梦想。"
+      }
+    ]
+  },
+  "founder": {
+    "name": "周文龙",
+    "title": "创始人",
+    "image": "uploads/founder.jpeg",
+    "bio": "      极运龙城滑雪俱乐部创始人，国家级滑雪裁判员，中国滑雪协会大众滑雪等级评定官、赛事管理员。深耕冰雪运动十余年，创建太原首支青少年高山滑雪队，发起龙城杯大众高山滑雪赛，构建全年四季系统化训练体系。搭建从零基础进阶、比赛达级至高考升学的完整培养通道，先后培养输送2名国家一级运动员、4名国家二级运动员。同时受聘太原理工大学现代科技学院、太原科技大学外聘教练，专注青少年滑雪人才培养与冰雪运动普及。"
+  },
+  "bases": [
+    {
+      "id": 1,
+      "name": "室内训练基地",
+      "image": "uploads/extracted_3_bases_0.jpeg",
+      "description": "全年可用室内训练"
+    },
+    {
+      "id": 2,
+      "name": "采薇滑雪基地",
+      "image": "uploads/extracted_4_bases_1.jpeg",
+      "description": "山西知名户外雪场"
+    },
+    {
+      "id": 3,
+      "name": "李宁滑雪基地",
+      "image": "uploads/extracted_5_bases_2.jpeg",
+      "description": "专业赛事级场地"
+    },
+    {
+      "id": 4,
+      "name": "新广武训练基地",
+      "image": "uploads/extracted_6_bases_3.jpeg",
+      "description": "山西最大滑雪场"
+    }
+  ],
+  "athletes": [
+    {
+      "id": 1,
+      "name": "刘初玥",
+      "level": "国家一级运动员",
+      "image": "uploads/extracted_7_athletes_0.jpeg",
+      "video": "https://weixin.qq.com/sph/AbWVn5TLCQ"
+    },
+    {
+      "id": 2,
+      "name": "武宸睿",
+      "level": "国家一级运动员",
+      "image": "uploads/extracted_8_athletes_1.jpeg",
+      "video": "https://weixin.qq.com/sph/AKkmthKuQB"
+    },
+    {
+      "id": 3,
+      "name": "周诗钰",
+      "level": "国家二级运动员",
+      "image": "uploads/extracted_9_athletes_2.jpeg",
+      "video": "https://weixin.qq.com/sph/APu4PuvWUt"
+    },
+    {
+      "id": 4,
+      "name": "董鑫颖",
+      "level": "国家二级运动员",
+      "image": "uploads/extracted_10_athletes_3.jpeg",
+      "video": "https://weixin.qq.com/sph/AByNlOWZS0"
+    },
+    {
+      "id": 5,
+      "name": "李奕彤",
+      "level": "国家二级运动员",
+      "image": "uploads/extracted_11_athletes_4.jpeg"
+    },
+    {
+      "id": 6,
+      "name": "刘昱彦曦",
+      "level": "国家二级运动员",
+      "image": "uploads/extracted_12_athletes_5.jpeg",
+      "video": "https://weixin.qq.com/sph/A9XDWLqZm7"
+    }
+  ],
+  "menu": [
+    {
+      "id": 7,
+      "title": "抽奖活动",
+      "link": "lottery.html",
+      "icon": "🎁"
+    },
+    {
+      "id": 1,
+      "title": "了解课程",
+      "link": "courses.html",
+      "icon": "🎿"
+    },
+    {
+      "id": 2,
+      "title": "如何报课",
+      "link": "index.html#apply",
+      "icon": "📝"
+    },
+    {
+      "id": 3,
+      "title": "领取优惠",
+      "link": "index.html#coupon",
+      "icon": "🎫"
+    },
+    {
+      "id": 4,
+      "title": "关于我们",
+      "link": "index.html#about",
+      "icon": "👥"
+    },
+    {
+      "id": 5,
+      "title": "雪票市场",
+      "link": "#",
+      "icon": "🎿"
+    },
+    {
+      "id": 6,
+      "title": "装备市场",
+      "link": "#",
+      "icon": "🛒"
+    }
+  ],
+  "courses": {
+    "snow": [
+      {
+        "id": "s1",
+        "title": "🎿 私教课",
+        "icon": "⚡",
+        "type": "snow",
+        "content": {
+          "description": "1:1定制化教学，针对性解决滑行卡点问题。无论您是初学者想入门，还是有基础想突破技术瓶颈，私教都能为您提供最精准的指导。",
+          "crowd": "成人和儿童",
+          "time": "灵活预约，每次2小时起",
+          "video": " https://v.douyin.com/clHWPL3AWL4",
+          "price": "300元/小时起",
+          "images": [],
+          "cover": "uploads/course_1775973781050.jpg"
+        },
+        "tag": "热门",
+        "featured": true,
+        "subCourses": [],
+        "tableLink": "https://www.kdocs.cn/l/cj7jCQXEQQvR"
+      },
+      {
+        "id": "s3",
+        "title": "🏆 滑雪队",
+        "icon": "🥇",
+        "type": "snow",
+        "content": {
+          "description": "系统化训练体系，真正掌握一项���能，可达到较高技术水平。每周六日训练，寒假7-10天集训。可参加省级比赛，通过比赛达级升学。",
+          "crowd": "5-14周岁",
+          "time": "每周六日+寒假集训",
+          "video": "https://weixin.qq.com/sph/AQCQ5M95yL",
+          "price": "7800元/年起",
+          "images": [],
+          "cover": "uploads/course_1775974900835.jpg"
+        },
+        "tag": "升学",
+        "featured": true,
+        "tableLink": "https://www.kdocs.cn/l/cj7jCQXEQQvR"
+      },
+      {
+        "id": "s2",
+        "title": "🏔️ 冬令营",
+        "icon": "🎪",
+        "type": "snow",
+        "content": {
+          "description": "5-14周岁青少年专属，开放式训练营。3天/5天/7天多种时长自由选择或组合，专业教练+助教老师全程陪护。",
+          "crowd": "5-14周岁",
+          "time": "3天/5天/7天，寒假期间",
+          "video": "https://weixin.qq.com/sph/A614P6LQtn",
+          "price": "2480元起",
+          "images": [],
+          "cover": "uploads/course_1775974965920.jpg"
+        },
+        "tag": "推荐",
+        "featured": true,
+        "tableLink": "https://www.kdocs.cn/l/cj7jCQXEQQvR"
+      }
+    ],
+    "offseason": [
+      {
+        "id": "o1",
+        "title": "🧗 室内滑雪机",
+        "icon": "💪",
+        "type": "offseason",
+        "content": {
+          "description": "教练一对一指导，安全有保障。用时短效率高，30分钟相当于雪场滑行12公里。有效解决内腿管理等技术问题。",
+          "crowd": "成人和儿童",
+          "time": "灵活预约，每次1小时",
+          "video": "https://weixin.qq.com/sph/A0fX26rppd",
+          "price": "200-300元/小时",
+          "images": [],
+          "cover": "uploads/course_1775975075547.jpg"
+        },
+        "tag": "热门",
+        "featured": true,
+        "tableLink": "https://www.kdocs.cn/l/csLZ81nvY8NA"
+      },
+      {
+        "id": "o2",
+        "title": "🛹 陆地冲浪",
+        "icon": "🏄",
+        "type": "offseason",
+        "content": {
+          "description": "户外课程，流行时尚的运动方式。风格技术类似单板滑雪，在陆地上也能练习滑雪动作。",
+          "crowd": "成人和儿童",
+          "time": "每周六日，2小时/次",
+          "video": "https://weixin.qq.com/sph/AMyP6GXcew",
+          "price": "199元/次起",
+          "images": [],
+          "cover": "uploads/course_1775975107700.jpg"
+        },
+        "tag": "户外",
+        "featured": false,
+        "tableLink": "https://www.kdocs.cn/l/csLZ81nvY8NA"
+      },
+      {
+        "id": "o3",
+        "title": "🌲 户外拓展",
+        "icon": "⛺",
+        "type": "offseason",
+        "content": {
+          "description": "5-14周岁青少年户外活动体验，包含多种项目。可以单独按次报名，灵活参与。",
+          "crowd": "5-14周岁",
+          "time": "每周六日，单次2小时",
+          "video": "https://weixin.qq.com/sph/A7REcjYNlk",
+          "price": "199元/次起",
+          "images": [],
+          "cover": "uploads/course_1775975131967.jpg"
+        },
+        "tag": "户外",
+        "featured": false,
+        "tableLink": "https://www.kdocs.cn/l/csLZ81nvY8NA"
+      },
+      {
+        "id": "o4",
+        "title": "⛷️ 高山滑轮",
+        "icon": "🏔️",
+        "type": "offseason",
+        "content": {
+          "description": "高山滑雪的夏训方式，模拟还原真实旗门赛道，进行专业旗门训练。",
+          "crowd": "5-14周岁",
+          "time": "暑期集训，7-10天",
+          "video": "https://weixin.qq.com/sph/Athbe3Jm37",
+          "price": "199/次起",
+          "images": [],
+          "cover": "uploads/course_1775975176058.jpg"
+        },
+        "tag": "专业",
+        "featured": false,
+        "tableLink": "https://www.kdocs.cn/l/csLZ81nvY8NA"
+      },
+      {
+        "id": "o5",
+        "title": "🏂 室内滑雪场",
+        "icon": "❄️",
+        "type": "offseason",
+        "content": {
+          "description": "大型室内滑雪场体验，一般在暑期集中训练。专业教练带队，适合想要系统提升的学员。",
+          "crowd": "5-14周岁",
+          "time": "暑期集中训练",
+          "video": "https://weixin.qq.com/sph/A6BCRgOTes",
+          "price": "详询顾问",
+          "images": [],
+          "cover": "uploads/course_1775975214006.jpg"
+        },
+        "tag": "集训",
+        "featured": false,
+        "tableLink": "https://www.kdocs.cn/l/csLZ81nvY8NA"
+      }
+    ]
+  },
+  "quiz": {
+    "startQuestionId": "q1",
+    "questions": [
+      {
+        "id": "q1",
+        "type": "single",
+        "content": "您的年龄段是？",
+        "options": [
+          {
+            "text": "5-14周岁",
+            "next": "q2"
+          },
+          {
+            "text": "15-18周岁",
+            "next": "q2"
+          },
+          {
+            "text": "成人",
+            "next": "q2"
+          }
+        ],
+        "placeholder": "",
+        "next": "end"
+      },
+      {
+        "id": "q2",
+        "type": "single",
+        "content": "您计划参加的项目是？",
+        "options": [
+          {
+            "text": "户外滑雪",
+            "next": "q3"
+          },
+          {
+            "text": "室内滑雪",
+            "next": "q3"
+          },
+          {
+            "text": "陆地冲浪",
+            "next": "q4"
+          },
+          {
+            "text": "户外活动",
+            "next": "q4"
+          },
+          {
+            "text": "高山滑轮",
+            "next": "q4"
+          }
+        ]
+      },
+      {
+        "id": "q3",
+        "type": "single",
+        "content": "您有滑行基础吗？",
+        "placeholder": "如：周末、平时晚上等",
+        "next": "end",
+        "options": [
+          {
+            "text": "没有基础",
+            "next": "q4"
+          },
+          {
+            "text": "有，滑过几次",
+            "next": "q6"
+          },
+          {
+            "text": "有，请教练教过",
+            "next": "q6"
+          },
+          {
+            "text": "有，自己的滑雪板",
+            "next": "q6"
+          }
+        ]
+      },
+      {
+        "id": "q6",
+        "type": "single",
+        "content": "滑过双板还是单板？",
+        "placeholder": "方便顾问联系您",
+        "next": "end",
+        "options": [
+          {
+            "text": "双板",
+            "next": "q4"
+          },
+          {
+            "text": "单板",
+            "next": "q4"
+          }
+        ]
+      },
+      {
+        "id": "q4",
+        "type": "single",
+        "content": "您愿意付出的时间是？",
+        "options": [
+          {
+            "text": "1-2天",
+            "next": "q5"
+          },
+          {
+            "text": "3-10天",
+            "next": "q5"
+          },
+          {
+            "text": "每周六日",
+            "next": "q5"
+          },
+          {
+            "text": "长期学习",
+            "next": "q5"
+          }
+        ]
+      },
+      {
+        "id": "q5",
+        "type": "single",
+        "content": "您愿意接受的费用是？",
+        "options": [
+          {
+            "text": "500-2000元",
+            "next": "q7"
+          },
+          {
+            "text": "2000-5000元",
+            "next": "q7"
+          },
+          {
+            "text": "5000-10000元",
+            "next": "q7"
+          },
+          {
+            "text": "10000+元",
+            "next": "q7"
+          }
+        ]
+      },
+      {
+        "id": "q7",
+        "type": "single",
+        "content": "您报课的目的或目标是什么？",
+        "placeholder": "请输入...",
+        "next": "q8",
+        "options": [
+          {
+            "text": "锻炼身体",
+            "next": "q8"
+          },
+          {
+            "text": "培养兴趣",
+            "next": "q8"
+          },
+          {
+            "text": "考虑升学",
+            "next": "q8"
+          },
+          {
+            "text": "规划专业",
+            "next": "q8"
+          },
+          {
+            "text": "没有具体考虑",
+            "next": "q8"
+          }
+        ]
+      },
+      {
+        "id": "q8",
+        "type": "input",
+        "content": "请留下您的联系方式，我们会及时和您联系。",
+        "placeholder": "请输入...",
+        "next": "end"
+      }
+    ],
+    "result": {
+      "title": "感谢您的填写！",
+      "content": "我们的课程顾问将在24小时内与您联系，为您定制专属学习方案。",
+      "contact": "或直接拨打：15634995917"
+    }
+  },
+  "apply": {
+    "title": "如何报课",
+    "phone": "15634995917",
+    "wechat": "私信获取",
+    "address": "太原市小店区训练基地"
+  },
+  "coupons": [],
+  "coursesPage": {
+    "hero": {
+      "title": "专业课程体系",
+      "subtitle": "从零基础到专业级 量身定制学习方案"
+    },
+    "snowSection": {
+      "badge": "❄️ 雪季课程",
+      "title": "冬季专属 · 雪上训练",
+      "subtitle": "每年12月至次年3月 | 各大雪场实战训练"
+    },
+    "offseasonSection": {
+      "badge": "🌿 非雪季课程",
+      "title": "全年训练 · 持续进步",
+      "subtitle": "4月至11月 | 室内+户外多元化训练"
+    },
+    "cta": {
+      "title": "推荐适合你的课程",
+      "subtitle": "专业教练团队 · 科学训练体系 · 全年持续进步"
+    }
+  },
+  "activities": [],
+  "recommendationRules": {
+    "weights": {
+      "projectType": 100,
+      "ageGroup": 6,
+      "budget": 2,
+      "timePreference": 3,
+      "featured": 2,
+      "beginner": 2
+    },
+    "displaySettings": {
+      "maxResults": 3,
+      "showMatchRate": true,
+      "showActivities": true,
+      "showSaving": true,
+      "showTableLink": false
+    },
+    "matchRateBase": 95,
+    "matchRateDecrement": 8
+  },
+  "lottery": {
+    "enabled": true,
+    "prizes": [
+      {
+        "id": 1,
+        "name": "幸运奖",
+        "icon": "🏆",
+        "description": "",
+        "probability": 0.1,
+        "total": 100,
+        "remain": 99,
+        "level": 1,
+        "content": "价值380元趣滑雪室内滑雪课1节（正式课）",
+        "rules": "1，课程为预约制提前预约微信电话13313518501\n2，课程需要时间，准备约10分钟，机器练习15分钟，休息15分钟，再上机器练习15分钟。\n3，有效期7天，请在7天内使用，过期自动作废。\n4，限本人使用",
+        "value": "",
+        "expireDate": "2026-04-23"
+      },
+      {
+        "id": 2,
+        "name": "新奖品",
+        "icon": "🎁",
+        "content": "价值109元趣滑雪室内体验课（朋友专用）",
+        "rules": "1，课程为预约制提前预约微信电话13313518501\n2，课程需要时间，准备约10分钟，机器练习10分钟，休息10分钟，再上机器练习10分钟。\n3，有效期7天，请在7天内使用，过期自动作废。\n4，本人不可以使用仅限朋友使用。",
+        "description": "",
+        "probability": 1,
+        "value": "",
+        "total": 100,
+        "remain": 96,
+        "expireDate": "2026-04-23",
+        "level": 2
+      }
+    ],
+    "records": [],
+    "rules": [
+      "每位用户仅可参与一次抽奖",
+      "奖品数量有限，先到先得",
+      "中奖后请截图保存，联系客服出示截图领取",
+      "活动时间：即日起至2026年6月24日",
+      "本活动最终解释权归极运龙城×趣滑雪俱乐部所有"
+    ],
+    "formFields": [
+      {
+        "name": "name",
+        "label": "姓名",
+        "type": "text",
+        "required": true,
+        "placeholder": "请输入您的姓名"
+      },
+      {
+        "name": "phone",
+        "label": "手机号",
+        "type": "tel",
+        "required": true,
+        "placeholder": "请输入您的手机号"
+      }
+    ],
+    "settings": {
+      "maxDrawsPerUser": 0,
+      "drawCooldownMinutes": 0,
+      "drawTime": "2026-04-16T18:17",
+      "formFields": [
+        {
+          "id": "name",
+          "label": "姓名",
+          "type": "text",
+          "required": true,
+          "placeholder": "请输入您的姓名"
+        },
+        {
+          "id": "phone",
+          "label": "手机号",
+          "type": "tel",
+          "required": true,
+          "placeholder": "请输入手机号"
+        }
+      ],
+      "lotteryType": "guaranteed",
+      "guaranteedPrizes": [
+        {
+          "prizeId": 1,
+          "count": 1,
+          "maxCount": 1,
+          "prizeName": "幸运奖",
+          "prizeIcon": "🏆",
+          "level": 1
+        }
+      ]
+    },
+    "history": [
+      {
+        "phone": "18003411633",
+        "name": "zhouwenlong",
+        "prize": "三等奖",
+        "prizeId": 3,
+        "time": "2026-04-15T06:08:04.640Z",
+        "archivedAt": "2026-04-15T06:08:04.640Z",
+        "archivedNote": "系统迁移"
+      },
+      {
+        "phone": "18003411633",
+        "name": "zhouwenlong",
+        "prize": "三等奖",
+        "prizeId": 3,
+        "time": "2026-04-15T06:08:04.640Z",
+        "archivedAt": "2026/4/15 14:43:25",
+        "archivedNote": "手动清空存档"
+      },
+      {
+        "phone": "18003411633",
+        "name": "zhouwenlong",
+        "prize": "三等奖",
+        "prizeId": 3,
+        "time": "2026-04-15T06:46:56.632Z",
+        "archivedAt": "2026/4/15 14:46:56",
+        "archivedNote": "抽奖参与"
+      },
+      {
+        "phone": "18003411633",
+        "name": "zhouwenlong",
+        "prize": "参与奖",
+        "prizeId": 4,
+        "time": "2026-04-15T06:54:28.510Z",
+        "archivedAt": "2026/4/15 14:54:28",
+        "archivedNote": "抽奖参与"
+      },
+      {
+        "phone": "18003411633",
+        "name": "zhouwenlong",
+        "prize": "参与奖",
+        "prizeId": 4,
+        "time": "2026-04-15T06:58:55.810Z",
+        "archivedAt": "2026/4/15 14:58:55",
+        "archivedNote": "抽奖参与"
+      },
+      {
+        "phone": "18003411633",
+        "name": "周文龙",
+        "prize": "参与奖",
+        "prizeId": 4,
+        "time": "2026-04-15T07:13:43.401Z",
+        "archivedAt": "2026/4/15 15:13:43",
+        "archivedNote": "抽奖参与"
+      },
+      {
+        "phone": "18003411633",
+        "name": "zhouwenlong",
+        "prize": "一等奖",
+        "prizeId": 1,
+        "time": "2026-04-15T06:58:55.810Z",
+        "won": true,
+        "prizeIcon": "🏆",
+        "archivedAt": "2026-04-15T15:57:06.483Z",
+        "archivedNote": "手动开奖"
+      },
+      {
+        "phone": "18003411633",
+        "name": "周文龙",
+        "prize": "一等奖",
+        "prizeId": 1,
+        "time": "2026-04-15T07:13:43.401Z",
+        "won": true,
+        "prizeIcon": "🏆",
+        "archivedAt": "2026-04-15T15:57:06.483Z",
+        "archivedNote": "手动开奖"
+      },
+      {
+        "name": "测试用户",
+        "phone": "13900009999",
+        "time": "2026-04-15T16:02:02.678Z",
+        "won": true,
+        "prize": "新奖品",
+        "prizeIcon": "🎁",
+        "prizeId": 2,
+        "archivedAt": "2026-04-16T02:52:48.184Z",
+        "archivedNote": "手动开奖"
+      },
+      {
+        "name": "用户A",
+        "phone": "13900001001",
+        "time": "2026-04-15T16:02:09.534Z",
+        "won": true,
+        "prize": "新奖品",
+        "prizeIcon": "🎁",
+        "prizeId": 2,
+        "archivedAt": "2026-04-16T02:52:48.184Z",
+        "archivedNote": "手动开奖"
+      },
+      {
+        "name": "用户B",
+        "phone": "13900001002",
+        "time": "2026-04-15T16:02:09.553Z",
+        "won": true,
+        "prize": "新奖品",
+        "prizeIcon": "🎁",
+        "prizeId": 2,
+        "archivedAt": "2026-04-16T02:52:48.184Z",
+        "archivedNote": "手动开奖"
+      },
+      {
+        "name": "测试",
+        "phone": "13900009991",
+        "time": "2026-04-16T00:15:38.253Z",
+        "won": true,
+        "prize": "新奖品",
+        "prizeIcon": "🎁",
+        "prizeId": 2,
+        "archivedAt": "2026-04-16T02:52:48.184Z",
+        "archivedNote": "手动开奖"
+      },
+      {
+        "name": "zhouwenlong",
+        "phone": "18003411633",
+        "time": "2026-04-16T02:38:16.470Z",
+        "won": true,
+        "prize": "幸运奖",
+        "prizeIcon": "🏆",
+        "prizeId": 1,
+        "archivedAt": "2026-04-16T02:52:48.184Z",
+        "archivedNote": "手动开奖"
+      }
+    ],
+    "name": "完整测试抽奖",
+    "drawn": true
+  },
+  "recommendRules": [
+    {
+      "name": "初学者推荐滑雪队",
+      "conditions": {
+        "goal": "",
+        "budget": "",
+        "experience": "零基础"
+      },
+      "weight": 10,
+      "result": {
+        "courseId": "s3",
+        "courseTitle": "🏔️ 🏆 滑雪队",
+        "activityTitle": "",
+        "message": "零基础建议从双板学起"
+      }
+    }
+  ],
+  "quizSubmissions": [
+    {
+      "id": 1776218561415,
+      "answers": {
+        "q1": "成人",
+        "q2": "户外滑雪"
+      },
+      "recommendedCourses": [
+        "滑雪队",
+        "冬令营"
+      ],
+      "submittedAt": "2026-04-15T02:02:41.415Z"
+    },
+    {
+      "id": 1776218966130,
+      "answers": {
+        "q1": "成人"
+      },
+      "recommendedCourses": [
+        "滑雪队"
+      ],
+      "submittedAt": "2026-04-15T02:09:26.130Z"
+    },
+    {
+      "id": 1776219369477,
+      "answers": {
+        "q1": {
+          "text": "5-14周岁",
+          "tags": [],
+          "next": "q2"
+        },
+        "q2": {
+          "text": "户外滑雪",
+          "tags": [],
+          "next": "q3"
+        },
+        "q3": {
+          "text": "有，滑过几次",
+          "tags": [],
+          "next": "q6"
+        },
+        "q6": {
+          "text": "双板",
+          "tags": [],
+          "next": "q4"
+        },
+        "q4": {
+          "text": "每周六日",
+          "tags": [],
+          "next": "q5"
+        },
+        "q5": {
+          "text": "5000-10000元",
+          "tags": [],
+          "next": "q7"
+        },
+        "q7": {
+          "text": "锻炼身体",
+          "tags": [],
+          "next": "q8"
+        },
+        "q8": {
+          "text": "15234106125",
+          "tags": [],
+          "next": "end"
+        }
+      },
+      "recommendedCourses": [
+        "🏔️ 冬令营",
+        "🎿 私教课",
+        "🏆 滑雪队",
+        "🧗 室内滑雪机"
+      ],
+      "submittedAt": "2026-04-15T02:16:09.477Z"
+    },
+    {
+      "id": 1776219396173,
+      "answers": {
+        "q1": {
+          "text": "5-14周岁",
+          "tags": [],
+          "next": "q2"
+        },
+        "q2": {
+          "text": "户外滑雪",
+          "tags": [],
+          "next": "q3"
+        },
+        "q3": {
+          "text": "没有基础",
+          "tags": [],
+          "next": "q4"
+        },
+        "q4": {
+          "text": "每周六日",
+          "tags": [],
+          "next": "q5"
+        },
+        "q5": {
+          "text": "5000-10000元",
+          "tags": [],
+          "next": "q7"
+        },
+        "q7": {
+          "text": "1",
+          "tags": [],
+          "next": "q8"
+        },
+        "q8": {
+          "text": "2",
+          "tags": [],
+          "next": "end"
+        }
+      },
+      "recommendedCourses": [
+        "🎿 私教课",
+        "🏆 滑雪队",
+        "🏔️ 冬令营",
+        "🧗 室内滑雪机"
+      ],
+      "submittedAt": "2026-04-15T02:16:36.173Z"
+    },
+    {
+      "id": 1776219479559,
+      "answers": {
+        "q1": {
+          "text": "5-14周岁",
+          "tags": [],
+          "next": "q2"
+        },
+        "q2": {
+          "text": "户外滑雪",
+          "tags": [],
+          "next": "q3"
+        },
+        "q3": {
+          "text": "有，滑过几次",
+          "tags": [],
+          "next": "q6"
+        },
+        "q6": {
+          "text": "双板",
+          "tags": [],
+          "next": "q4"
+        },
+        "q4": {
+          "text": "每周六日",
+          "tags": [],
+          "next": "q5"
+        },
+        "q5": {
+          "text": "5000-10000元",
+          "tags": [],
+          "next": "q7"
+        },
+        "q7": {
+          "text": "1",
+          "tags": [],
+          "next": "q8"
+        },
+        "q8": {
+          "text": "18003411633",
+          "tags": [],
+          "next": "end"
+        }
+      },
+      "recommendedCourses": [
+        "🎿 私教课",
+        "🏆 滑雪队",
+        "🏔️ 冬令营",
+        "🧗 室内滑雪机"
+      ],
+      "submittedAt": "2026-04-15T02:17:59.559Z"
+    },
+    {
+      "id": 1776224486364,
+      "answers": {
+        "q1": {
+          "text": "5-14周岁",
+          "tags": [],
+          "next": "q2"
+        },
+        "q2": {
+          "text": "户外滑雪",
+          "tags": [],
+          "next": "q3"
+        },
+        "q3": {
+          "text": "没有基础",
+          "tags": [],
+          "next": "q4"
+        },
+        "q4": {
+          "text": "每周六日",
+          "tags": [],
+          "next": "q5"
+        },
+        "q5": {
+          "text": "5000-10000元",
+          "tags": [],
+          "next": "q7"
+        },
+        "q7": {
+          "text": "锻炼身体",
+          "tags": [],
+          "next": "q8"
+        },
+        "q8": {
+          "text": "15234106125",
+          "tags": [],
+          "next": "end"
+        }
+      },
+      "recommendedCourses": [
+        "🎿 私教课",
+        "🏆 滑雪队",
+        "🏔️ 冬令营",
+        "🧗 室内滑雪机"
+      ],
+      "submittedAt": "2026-04-15T03:41:26.364Z"
+    },
+    {
+      "id": 1776224945095,
+      "answers": {
+        "q1": {
+          "text": "5-14周岁",
+          "tags": [],
+          "next": "q2"
+        },
+        "q2": {
+          "text": "户外滑雪",
+          "tags": [],
+          "next": "q3"
+        },
+        "q3": {
+          "text": "没有基础",
+          "tags": [],
+          "next": "q4"
+        },
+        "q4": {
+          "text": "每周六日",
+          "tags": [],
+          "next": "q5"
+        },
+        "q5": {
+          "text": "5000-10000元",
+          "tags": [],
+          "next": "q7"
+        },
+        "q7": {
+          "text": "锻炼身体",
+          "tags": [],
+          "next": "q8"
+        },
+        "q8": {
+          "text": "111",
+          "tags": [],
+          "next": "end"
+        }
+      },
+      "recommendedCourses": [
+        "🎿 私教课",
+        "🏆 滑雪队",
+        "🏔️ 冬令营",
+        "🧗 室内滑雪机"
+      ],
+      "submittedAt": "2026-04-15T03:49:05.095Z"
+    },
+    {
+      "id": 1776298671040,
+      "answers": {
+        "q1": {
+          "text": "5-14周岁",
+          "tags": [],
+          "next": "q2"
+        },
+        "q2": {
+          "text": "户外滑雪",
+          "tags": [],
+          "next": "q3"
+        },
+        "q3": {
+          "text": "有，滑过几次",
+          "tags": [],
+          "next": "q6"
+        },
+        "q6": {
+          "text": "双板",
+          "tags": [],
+          "next": "q4"
+        },
+        "q4": {
+          "text": "3-10天",
+          "tags": [],
+          "next": "q5"
+        },
+        "q5": {
+          "text": "2000-5000元",
+          "tags": [],
+          "next": "q7"
+        },
+        "q7": {
+          "text": "培养兴趣",
+          "tags": [],
+          "next": "q8"
+        },
+        "q8": {
+          "text": "18003411633",
+          "tags": [],
+          "next": "end"
+        }
+      },
+      "recommendedCourses": [
+        "🎿 私教课",
+        "🏆 滑雪队",
+        "🏔️ 冬令营",
+        "🧗 室内滑雪机"
+      ],
+      "submittedAt": "2026-04-16T00:17:51.040Z"
+    }
+  ],
+  "users": {
+    "18003411633": {
+      "name": "zhouwenlong",
+      "phone": "18003411633",
+      "password": "",
+      "role": "user",
+      "myPrizes": [
+        {
+          "prize": "一等奖",
+          "icon": "🏆",
+          "description": "测试",
+          "wonAt": "2026-04-15T15:57:06.483Z",
+          "lotteryName": "开奖测试"
+        },
+        {
+          "prize": "一等奖",
+          "icon": "🏆",
+          "description": "测试",
+          "wonAt": "2026-04-15T15:57:06.483Z",
+          "lotteryName": "开奖测试"
+        },
+        {
+          "prize": "幸运奖",
+          "icon": "🏆",
+          "description": "",
+          "wonAt": "2026-04-16T02:52:48.184Z",
+          "lotteryName": "完整测试抽奖"
+        }
+      ]
+    },
+    "13900009999": {
+      "name": "测试用户",
+      "phone": "13900009999",
+      "password": "",
+      "role": "user",
+      "myPrizes": [
+        {
+          "prize": "新奖品",
+          "icon": "🎁",
+          "description": "",
+          "wonAt": "2026-04-16T02:52:48.184Z",
+          "lotteryName": "完整测试抽奖"
+        }
+      ]
+    },
+    "13900001001": {
+      "name": "用户A",
+      "phone": "13900001001",
+      "password": "",
+      "role": "user",
+      "myPrizes": [
+        {
+          "prize": "新奖品",
+          "icon": "🎁",
+          "description": "",
+          "wonAt": "2026-04-16T02:52:48.184Z",
+          "lotteryName": "完整测试抽奖"
+        }
+      ]
+    },
+    "13900001002": {
+      "name": "用户B",
+      "phone": "13900001002",
+      "password": "",
+      "role": "user",
+      "myPrizes": [
+        {
+          "prize": "新奖品",
+          "icon": "🎁",
+          "description": "",
+          "wonAt": "2026-04-16T02:52:48.184Z",
+          "lotteryName": "完整测试抽奖"
+        }
+      ]
+    },
+    "13900009991": {
+      "name": "测试",
+      "phone": "13900009991",
+      "password": "",
+      "role": "user",
+      "myPrizes": [
+        {
+          "prize": "新奖品",
+          "icon": "🎁",
+          "description": "",
+          "wonAt": "2026-04-16T02:52:48.184Z",
+          "lotteryName": "完整测试抽奖"
+        }
+      ]
+    }
+  }
+}
