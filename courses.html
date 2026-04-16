@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>了解课程 - 极运龙城×趣滑雪俱乐部</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo"><a href="index.html" style="text-decoration:none;color:inherit;">极运龙城×趣滑雪官网</a></div>
+      <ul class="nav-menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="courses.html" class="active">了解课程</a></li>
+        <li><a href="quiz.html">如何报课</a></li>
+        <li><a href="lottery.html">抽奖活动</a></li>
+        <li><a href="my.html">我的</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="courses-hero">
+    <div class="container">
+      <h1>专业课程体系</h1>
+      <p>从零基础到专业级 量身定制学习方案</p>
+    </div>
+  </section>
+
+  <!-- 雪季课程 -->
+  <section class="section courses-season">
+    <div class="container">
+      <div class="section-header">
+        <span class="season-badge snow">❄️ 雪季课程</span>
+        <h2>冬季专属 · 雪上训练</h2>
+        <p>每年12月至次年3月 | 各大雪场实战训练</p>
+      </div>
+
+      <div id="snow-courses-container">
+        <!-- 雪季课程将通过JavaScript动态加载 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 非雪季课程 -->
+  <section class="section courses-offseason">
+    <div class="container">
+      <div class="section-header">
+        <span class="season-badge grass">🌿 非雪季课程</span>
+        <h2>全年训练 · 持续进步</h2>
+        <p>4月至11月 | 室内+户外多元化训练</p>
+      </div>
+
+      <div id="offseason-courses-container">
+        <!-- 非雪季课程将通过JavaScript动态加载 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 底部导航 -->
+  <section class="section course-cta">
+    <div class="container">
+      <h2>选择适合你的课程</h2>
+      <p>专业教练团队 · 科学训练体系 · 全年持续进步</p>
+      <div class="cta-buttons">
+        <a href="quiz.html" class="btn btn-primary">如何报课</a>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2024 <span class="brand">极运龙城×趣滑雪俱乐部</span> 版权所有</p>
+    </div>
+  </footer>
+
+  <script>
+    // 课程页面数据加载
+    async function loadCourses() {
+      try {
+        const response = await fetch('data/content.json');
+        const data = await response.json();
+        
+        // 渲染页面内容
+        if (data.coursesPage) {
+          const hero = document.querySelector('.courses-hero');
+          if (hero) {
+            hero.querySelector('h1').textContent = data.coursesPage.hero.title;
+            hero.querySelector('p').textContent = data.coursesPage.hero.subtitle;
+          }
+          const snowSection = document.querySelector('.courses-season .section-header');
+          if (snowSection) {
+            snowSection.querySelector('.season-badge').textContent = data.coursesPage.snowSection.badge;
+            snowSection.querySelector('h2').textContent = data.coursesPage.snowSection.title;
+            snowSection.querySelector('p').textContent = data.coursesPage.snowSection.subtitle;
+          }
+          const offSection = document.querySelector('.courses-offseason .section-header');
+          if (offSection) {
+            offSection.querySelector('.season-badge').textContent = data.coursesPage.offseasonSection.badge;
+            offSection.querySelector('h2').textContent = data.coursesPage.offseasonSection.title;
+            offSection.querySelector('p').textContent = data.coursesPage.offseasonSection.subtitle;
+          }
+          const cta = document.querySelector('.course-cta');
+          if (cta) {
+            cta.querySelector('h2').textContent = data.coursesPage.cta.title;
+            cta.querySelector('p').textContent = data.coursesPage.cta.subtitle;
+          }
+        }
+        
+        if (data.courses) {
+          renderSnowCourses(data.courses.snow || []);
+          renderOffseasonCourses(data.courses.offseason || []);
+        }
+      } catch (error) {
+        console.error('加载课程数据失败:', error);
+      }
+    }
+
+    function renderSnowCourses(courses) {
+      const container = document.getElementById('snow-courses-container');
+      if (!container) return;
+
+      container.innerHTML = courses.map(course => createCourseCard(course)).join('');
+    }
+
+    function renderOffseasonCourses(courses) {
+      const container = document.getElementById('offseason-courses-container');
+      if (!container) return;
+
+      container.innerHTML = courses.map(course => createCourseCard(course)).join('');
+    }
+
+    function createCourseCard(course) {
+      var video = (course.content.video || '').trim();
+      var cover = (course.content.cover || '').trim();
+      var mediaHtml = '';
+      
+      // 优先显示封面图
+      if (cover) {
+        mediaHtml = '<a href="' + video + '" target="_blank" style="display:block;position:relative;"><img src="' + cover + '" alt="课程封面" style="width:100%;height:320px;object-fit:cover;border-radius:12px;"><div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);border-radius:12px;display:flex;align-items:center;justify-content:center;"><div style="width:80px;height:80px;background:rgba(255,255,255,0.9);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;color:#333;">▶</div></div></a>';
+      } else if (video) {
+        mediaHtml = '<a href="' + video + '" target="_blank" style="display:block;"><div style="width:100%;height:320px;background:#1a1a2e;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#C9A962;font-size:1.2rem;text-decoration:none;">📹 点击播放视频</div></a>';
+      } else {
+        mediaHtml = '<div class="course-video"><div class="video-placeholder"><span>📹 视频展示</span><small>暂无视频</small></div></div>';
+      }
+      
+      return '<div class="course-item"><div class="course-item-header"><h3>' + course.icon + ' ' + course.title + '</h3>' + (course.tag ? '<span class="course-badge">' + course.tag + '</span>' : '') + '</div><div class="course-item-body"><div class="course-row"><span class="course-label">📝 课程内容</span><span class="course-value">' + course.content.description + '</span></div><div class="course-row"><span class="course-label">👥 适合人群</span><span class="course-value">' + course.content.crowd + '</span></div><div class="course-row"><span class="course-label">⏰ 训练时间</span><span class="course-value">' + course.content.time + '</span></div><div class="course-row"><span class="course-label">💰 课程价格</span><span class="course-value price">' + course.content.price + '</span></div></div><div class="course-video-section">' + mediaHtml + '</div><div class="course-item-footer"><a href="tel:15634995917" class="btn-course">如何报课</a></div></div>';
+    }
+
+    function playVideo(url, type) {
+      var embedUrl = '';
+      if (type === 'weixin') {
+        var id = url.split('/sph/')[1];
+        embedUrl = 'https://channels.weixin.qq.com/video/' + id;
+      } else if (type === 'douyin') {
+        embedUrl = url;
+      } else if (url.indexOf('bilibili.com') !== -1 || url.indexOf('b23.tv') !== -1) {
+        var bv = url.match(/BV[A-Za-z0-9]+/);
+        embedUrl = bv ? '//player.bilibili.com/player.html?bvid=' + bv[0] : '';
+      }
+      var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;" onclick="this.remove()"><div style="width:90%;max-width:800px;" onclick="event.stopPropagation()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:white;"><span>视频播放</span><span style="cursor:pointer;font-size:24px;" onclick="this.closest(\'div[style*=&quot;position:fixed&quot;]\').remove()">×</span></div>';
+      if (type === 'douyin' || type === 'weixin') {
+        html += '<div style="background:#1a1a2e;padding:60px;text-align:center;border-radius:12px;"><p style="color:#C9A962;margin-bottom:15px;font-size:1.2rem;">点击下方按钮在新窗口观看</p><a href="' + url + '" target="_blank" style="display:inline-block;background:#C9A962;color:#0A1628;padding:15px 30px;border-radius:25px;font-weight:600;text-decoration:none;">打开链接</a></div>';
+      } else if (embedUrl) {
+        html += '<iframe src="' + embedUrl + '" style="width:100%;height:360px;border:none;border-radius:12px;" allowfullscreen></iframe>';
+      } else {
+        html += '<video src="' + url + '" controls style="width:100%;border-radius:12px;"></video>';
+      }
+      html += '</div></div>';
+      document.body.insertAdjacentHTML('beforeend', html);
+    }
+
+    // 页面加载完成后获取数据// 页面加载完成后获取数据
+    document.addEventListener('DOMContentLoaded', loadCourses);
+  </script>
+</body>
+</html>
