@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>极运龙城×趣滑雪俱乐部</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo" id="nav-logo">极运龙城×趣滑雪官网</div>
+      <ul class="nav-menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="courses.html">了解课程</a></li>
+        <li><a href="quiz.html">如何报课</a></li>
+        <li><a href="#tickets">雪票市场</a></li>
+        <li><a href="#gear">装备市场</a></li>
+        <li><a href="my.html" id="nav-my" style="display:flex;align-items:center;gap:8px;">
+          <span id="nav-user-avatar" style="width:32px;height:32px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">👤</span>
+          <span id="nav-user-name">我的</span>
+        </a></li>
+        
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section - 封面滚动图 -->
+  <section class="hero">
+    <div class="hero-slider" id="hero-slider">
+      <!-- Slides will be loaded dynamically -->
+    </div>
+    
+    <!-- Navigation Arrows -->
+    <button class="hero-arrow prev" id="hero-prev">❮</button>
+    <button class="hero-arrow next" id="hero-next">❯</button>
+    
+    <!-- Navigation Dots -->
+    <div class="hero-dots" id="hero-dots">
+      <!-- Dots will be loaded dynamically -->
+    </div>
+  </section>
+
+  <!-- Founded Year Section -->
+  <section class="founded-section" id="founded">
+    <div class="container">
+      <div class="founded-year" id="founded-year">----</div>
+      <div class="founded-label">俱乐部成立年份</div>
+      <p class="founded-desc" id="founded-desc"></p>
+    </div>
+  </section>
+
+  <!-- Founder Section -->
+  <section class="section founder-section" id="founder">
+    <div class="container">
+      <h2 class="section-title">创始人简介</h2>
+      <p class="section-subtitle">了解我们的创始人和领导者</p>
+      <div id="founder-content">
+        <!-- Founder content will be loaded dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Training Bases Section -->
+  <section class="section bases-section" id="bases">
+    <div class="container">
+      <h2 class="section-title">训练基地</h2>
+      <p class="section-subtitle">专业训练场地，助力学员成长</p>
+      <div class="bases-grid" id="bases-grid">
+        <!-- Bases will be loaded dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Athletes Section -->
+  <section class="section athletes-section" id="athletes">
+    <div class="container">
+      <h2 class="section-title">优秀队员</h2>
+      <p class="section-subtitle">我们的骄傲，赛场上的明星</p>
+      
+      <!-- Stats -->
+      <div class="athletes-stats">
+        <div class="stat-item">
+          <div class="stat-number" id="level1-count">0</div>
+          <div class="stat-label">国家一级运动员</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="level2-count">0</div>
+          <div class="stat-label">国家二级运动员</div>
+        </div>
+      </div>
+      
+      <div class="athletes-grid" id="athletes-grid">
+        <!-- Athletes will be loaded dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Menu Section -->
+  <section class="section menu-section" id="menu">
+    <div class="container">
+      <h2 class="section-title">更多服务</h2>
+      <p class="section-subtitle">了解我们提供的各项服务</p>
+      <div class="menu-grid" id="menu-grid">
+        <!-- Menu items will be loaded dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <!-- Lottery Draw Time Section -->
+  <section class="section lottery-announce-section" id="lottery-announce" style="display:none;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:60px 0;color:white;">
+    <div class="container" style="text-align:center;">
+      <h2 style="font-size:2rem;margin-bottom:16px;">🎰 抽奖活动</h2>
+      <p style="font-size:1.2rem;margin-bottom:20px;" id="lottery-name-display">即将开奖</p>
+      <div style="background:rgba(255,255,255,0.2);border-radius:16px;padding:24px;max-width:500px;margin:0 auto;">
+        <p style="font-size:1rem;margin-bottom:12px;">开奖时间</p>
+        <div id="lottery-countdown" style="font-size:2.5rem;font-weight:bold;letter-spacing:2px;">--:--:--</div>
+        <p style="font-size:0.9rem;margin-top:12px;opacity:0.8;" id="lottery-date-display"></p>
+      </div>
+      <a href="lottery.html" class="btn-lottery" style="display:inline-block;margin-top:24px;background:white;color:#667eea;padding:12px 32px;border-radius:50px;text-decoration:none;font-weight:bold;">立即参与抽奖 →</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© 2024 极运龙城×趣滑雪俱乐部 版权所有</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
