@@ -2,6 +2,9 @@
  * 极运龙城×趣滑雪俱乐部 - 首页逻辑
  */
 
+// API配置 - 修改这里的地址连接你的后端
+const API_BASE = 'https://1255313519-84i7l0se8i.ap-beijing.tencentscf.com';
+
 class SkiClubWebsite {
   constructor() {
     this.content = null;
@@ -24,7 +27,7 @@ class SkiClubWebsite {
   async loadContent() {
     // 优先从API获取内容
     try {
-      const response = await fetch('/api/content');
+      const response = await fetch(API_BASE + '/api/content');
       if (response.ok) {
         this.content = await response.json();
         return;
@@ -33,7 +36,7 @@ class SkiClubWebsite {
       console.warn('API获取失败，尝试文件路径:', e);
     }
     // 兼容直接访问 data/content.json 文件路径
-    const response = await fetch('data/content.json');
+    const response = await fetch(API_BASE + '/data/content.json');
     this.content = await response.json();
   }
 
