@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>如何报课 - 极运龙城×趣滑雪俱乐部</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .quiz-container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    .quiz-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+    .quiz-progress-bar {
+      flex: 1;
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .quiz-progress-fill {
+      height: 100%;
+      background: linear-gradient(135deg, #C9A962 0%, #E8D5A3 100%);
+      transition: width 0.4s ease;
+    }
+    .quiz-progress-text {
+      font-size: 0.9rem;
+      color: #666;
+      min-width: 50px;
+      text-align: right;
+    }
+    .quiz-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .quiz-question {
+      font-size: 1.5rem;
+      color: #1a1a2e;
+      margin-bottom: 30px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .quiz-option {
+      background: #f8f9fa;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px 24px;
+      font-size: 1.1rem;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+    .quiz-option:hover {
+      border-color: #C9A962;
+      background: #fffbeb;
+      transform: translateX(5px);
+    }
+    .quiz-option.selected {
+      border-color: #C9A962;
+      background: linear-gradient(135deg, rgba(201,169,98,0.1) 0%, rgba(232,213,163,0.1) 100%);
+    }
+    .quiz-input {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 1.1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .quiz-input:focus {
+      border-color: #C9A962;
+    }
+    .quiz-input-hint {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 12px;
+      text-align: left;
+    }
+    .quiz-nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 30px;
+      justify-content: center;
+    }
+    .quiz-btn {
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+    }
+    .quiz-btn-primary {
+      background: linear-gradient(135deg, #C9A962 0%, #E8D5A3 100%);
+      color: #0A1628;
+    }
+    .quiz-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(201,169,98,0.4);
+    }
+    .quiz-btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .quiz-btn-secondary {
+      background: white;
+      color: #666;
+      border: 2px solid #e5e7eb;
+    }
+    .quiz-btn-secondary:hover {
+      border-color: #C9A962;
+    }
+    .quiz-result {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .quiz-result-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+    .quiz-result-title {
+      font-size: 2rem;
+      color: #C9A962;
+      margin-bottom: 20px;
+      font-weight: 700;
+    }
+    .quiz-result-content {
+      font-size: 1.1rem;
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+    .quiz-result-contact {
+      background: linear-gradient(135deg, #0A1628 0%, #1a3a5c 100%);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 16px;
+      margin-top: 30px;
+    }
+    .quiz-result-contact a {
+      color: #C9A962;
+      font-weight: 700;
+    }
+    .quiz-restart {
+      margin-top: 30px;
+    }
+    .quiz-back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #666;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .quiz-back-btn:hover {
+      color: #333;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .quiz-card, .quiz-result {
+      animation: fadeIn 0.4s ease;
+    }
+    /* 推荐课程卡片样式 */
+    .recommendations {
+      margin: 30px 0;
+      text-align: left;
+    }
+    .recommendations h3 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.3rem;
+    }
+    .course-card {
+      background: #f8f9fa;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s;
+    }
+    .course-card:hover {
+      border-color: #C9A962;
+      transform: translateY(-2px);
+    }
+    .course-card.main {
+      background: linear-gradient(135deg, rgba(201,169,98,0.1) 0%, rgba(232,213,163,0.1) 100%);
+      border-color: #C9A962;
+    }
+    .course-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .course-title {
+      font-size: 1.2rem;
+      color: #1a1a2e;
+      font-weight: 700;
+    }
+    .match-badge {
+      background: #C9A962;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .course-desc {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .course-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .course-meta span {
+      background: white;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .course-price {
+      font-size: 1.1rem;
+      color: #e55;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .course-price del {
+      color: #999;
+      font-size: 0.9rem;
+      font-weight: normal;
+      margin-right: 8px;
+    }
+    /* 省钱方案 */
+    .saving-section {
+      background: linear-gradient(135deg, #FF6B35 0%, #F7B733 100%);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .saving-section .saving-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .saving-section .saving-desc {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    .saving-section .saving-amount {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    /* 活动标签 */
+    .activity-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .activity-tag {
+      background: rgba(255,107,53,0.1);
+      color: #FF6B35;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    /* 课程表链接 */
+    .course-link {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: #0A1628;
+      color: white;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .course-link:hover {
+      background: #1a3a5c;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo"><a href="index.html" style="text-decoration:none;color:inherit;">极运龙城×趣滑雪官网</a></div>
+      <ul class="nav-menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="courses.html">了解课程</a></li>
+        <li><a href="quiz.html" class="active">如何报课</a></li>
+        <li><a href="lottery.html">抽奖活动</a></li>
+        <li><a href="my.html">我的</a></li>
+        <li style="display:flex;align-items:center;">
+          <a href="my.html" style="display:flex;align-items:center;gap:8px;padding:4px 8px;" id="nav-user-link">
+            <span id="nav-user-avatar" style="width:28px;height:28px;border-radius:50%;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:1rem;">👤</span>
+            <span id="nav-user-name" style="font-size:0.85rem;">我的</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  
+  <script>
+    // Load user info for nav
+    (function() {
+      var userStr = localStorage.getItem("ski_user");
+      if (userStr) {
+        try {
+          var user = JSON.parse(userStr);
+          var nameEl = document.getElementById("nav-user-name");
+          var avatarEl = document.getElementById("nav-user-avatar");
+          if (nameEl) nameEl.textContent = user.name || "用户";
+          if (avatarEl && user.avatar) {
+            if (user.avatar.startsWith("data:") || user.avatar.startsWith("http")) {
+              avatarEl.innerHTML = "<img src='" + user.avatar + "' style='width:100%;height:100%;object-fit:cover;border-radius:50%;'>";
+            } else {
+              avatarEl.textContent = user.avatar;
+            }
+          }
+        } catch(e) {}
+      }
+    })();
+  </script>
+
+  <div class="quiz-container">
+    <!-- 进度条 -->
+    <div class="quiz-progress" id="quiz-progress" style="display:none;">
+      <div class="quiz-progress-bar">
+        <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+      </div>
+      <div class="quiz-progress-text" id="quiz-progress-text">1/5</div>
+    </div>
+
+    <!-- 问卷内容 -->
+    <div id="quiz-content"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>© 2024 <span class="brand">极运龙城×趣滑雪俱乐部</span> 版权所有</p>
+    </div>
+  </footer>
+
+  <script>
+    class Quiz {
+      constructor() {
+        this.questions = [];
+        this.currentQuestion = null;
+        this.answers = {};
+        this.totalQuestions = 0;
+        this.currentIndex = 0;
+        this.history = [];
+        this.content = null;
+        this.courses = { snow: [], offseason: [] };
+        this.init();
+      }
+
+      async init() {
+        try {
+          const res = await fetch('data/content.json');
+          this.content = await res.json();
+          if (this.content.quiz) {
+            this.questions = this.content.quiz.questions;
+            this.result = this.content.quiz.result;
+            this.startQuestionId = this.content.quiz.startQuestionId;
+            this.totalQuestions = this.questions.length;
+            this.courses = { 
+              snow: this.content.courses?.snow || [], 
+              offseason: this.content.courses?.offseason || [] 
+            };
+            this.startQuiz();
+          }
+        } catch (err) {
+          document.getElementById('quiz-content').innerHTML = '<div class="quiz-card"><p>加载失败，请刷新重试</p></div>';
+        }
+      }
+
+      startQuiz() {
+        this.answers = {};
+        this.history = [];
+        this.currentIndex = 0;
+        this.goToQuestion(this.startQuestionId);
+      }
+
+      goToQuestion(questionId) {
+        if (questionId === 'end') {
+          this.showResult();
+          return;
+        }
+
+        const question = this.questions.find(q => q.id === questionId);
+        if (!question) {
+          this.showResult();
+          return;
+        }
+
+        this.currentQuestion = question;
+        this.currentIndex++;
+        this.renderQuestion();
+        this.updateProgress();
+      }
+
+      renderQuestion() {
+        const q = this.currentQuestion;
+        let html = `
+          <div class="quiz-card" style="position:relative;">
+            <h2 class="quiz-question">${q.content}</h2>
+        `;
+
+        if (q.type === 'input') {
+          html += `
+            <input type="text" class="quiz-input" id="quiz-input" placeholder="${q.placeholder || '请输入...'}">
+            <p class="quiz-input-hint">输入完成后点击下一步</p>
+            <div class="quiz-nav">
+              <button class="quiz-btn quiz-btn-secondary" onclick="quiz.goBack()">上一步</button>
+              <button class="quiz-btn quiz-btn-primary" onclick="quiz.nextFromInput()">下一步</button>
+            </div>
+          `;
+        } else {
+          const selectedAnswers = this.answers[q.id] || [];
+          html += `<div class="quiz-options">`;
+          q.options.forEach((opt, idx) => {
+            const isSelected = selectedAnswers.includes(idx);
+            html += `
+              <div class="quiz-option ${isSelected ? 'selected' : ''}" onclick="quiz.selectOption(${idx})">
+                ${opt.text}
+              </div>
+            `;
+          });
+          html += `</div>`;
+
+          const hasAnswer = selectedAnswers.length > 0;
+          html += `
+            <div class="quiz-nav">
+              <button class="quiz-btn quiz-btn-secondary" onclick="quiz.goBack()">上一步</button>
+              <button class="quiz-btn quiz-btn-primary" onclick="quiz.nextFromChoice()" ${hasAnswer ? '' : 'disabled'}>下一步</button>
+            </div>
+          `;
+        }
+
+        html += `</div>`;
+        document.getElementById('quiz-content').innerHTML = html;
+
+        if (q.type === 'input') {
+          document.getElementById('quiz-input').focus();
+        }
+      }
+
+      selectOption(idx) {
+        const q = this.currentQuestion;
+        if (q.type === 'single') {
+          this.answers[q.id] = [idx];
+        } else {
+          if (!this.answers[q.id]) this.answers[q.id] = [];
+          const pos = this.answers[q.id].indexOf(idx);
+          if (pos > -1) {
+            this.answers[q.id].splice(pos, 1);
+          } else {
+            this.answers[q.id].push(idx);
+          }
+        }
+        this.renderQuestion();
+      }
+
+      nextFromChoice() {
+        const q = this.currentQuestion;
+        const selected = this.answers[q.id];
+        if (!selected || selected.length === 0) return;
+
+        const selectedIdx = selected[0];
+        const option = q.options[selectedIdx];
+        
+        this.history.push(q.id);
+        
+        // 保存完整选项信息用于推荐
+        this.answers[q.id] = { text: option.text, tags: option.tags || [], next: option.next };
+        
+        const nextId = option.next;
+        this.goToQuestion(nextId);
+      }
+
+      nextFromInput() {
+        const q = this.currentQuestion;
+        const value = document.getElementById('quiz-input').value.trim();
+        if (!value) return;
+
+        this.answers[q.id] = { text: value, tags: [], next: q.next };
+        this.history.push(q.id);
+        this.goToQuestion(q.next);
+      }
+
+      goBack() {
+        // history stores the IDs of questions we've answered
+        // We want to go to the question stored in history, then decrement index
+        const prevId = this.history.pop();
+        if (!prevId) {
+          alert('已经是第一题了');
+          return;
+        }
+        
+        this.currentIndex--;
+        const question = this.questions.find(q => q.id === prevId);
+        if (question) {
+          this.currentQuestion = question;
+          this.renderQuestion();
+          this.updateProgress();
+        }
+      }
+
+      updateProgress() {
+        const progress = document.getElementById('quiz-progress');
+        const fill = document.getElementById('quiz-progress-fill');
+        const text = document.getElementById('quiz-progress-text');
+
+        if (this.totalQuestions > 1) {
+          progress.style.display = 'flex';
+          const percent = Math.round((this.currentIndex / this.totalQuestions) * 100);
+          fill.style.width = percent + '%';
+          text.textContent = `${this.currentIndex}/${this.totalQuestions}`;
+        }
+      }
+
+      showResult() {
+        document.getElementById('quiz-progress').style.display = 'none';
+        
+        // 根据用户答案计算推荐
+        const recommendations = this.calculateRecommendations();
+        
+        // 生成推荐课程HTML
+        const recommendationsHtml = recommendations.map((rec, index) => {
+          // 活动标签HTML
+          const activityTagsHtml = rec.activities && rec.activities.length > 0
+            ? `<div class="activity-tags">
+                ${rec.activities.map(a => `<span class="activity-tag">${a.badge} ${a.title}</span>`).join('')}
+               </div>`
+            : '';
+            
+          // 省钱方案HTML
+          let savingHtml = '';
+          if (rec.bestSaving) {
+            savingHtml = `
+              <div class="saving-section">
+                <div class="saving-title">💰 最佳省钱方案</div>
+                <div class="saving-desc">${rec.bestSaving.description}</div>
+                <div class="saving-amount">${rec.bestSaving.savings}</div>
+              </div>
+            `;
+          }
+          
+          // 价格显示（如果有优惠显示原价和折后价）
+          let priceHtml = '';
+          if (rec.bestSaving && rec.priceNum > 0) {
+            priceHtml = `<div class="course-price"><del>原价: ${rec.priceNum}元</del> 折后: ${this.estimateFinalPrice(rec.priceNum, rec.bestSaving)}元</div>`;
+          } else {
+            priceHtml = `<div class="course-price">${rec.content?.price || '详询顾问'}</div>`;
+          }
+          
+          return `
+            <div class="course-card ${index === 0 ? 'main' : ''}">
+              <div class="course-header">
+                <div class="course-title">${rec.title}</div>
+                <div class="match-badge">匹配度 ${rec.matchRate}%</div>
+              </div>
+              <div class="course-desc">${rec.content?.description || ''}</div>
+              <div class="course-meta">
+                <span>👤 ${rec.content?.crowd || ''}</span>
+                <span>⏰ ${rec.content?.time || ''}</span>
+              </div>
+              ${priceHtml}
+              ${activityTagsHtml}
+              ${savingHtml}
+              
+            </div>
+          `;
+        }).join('');
+        
+        // 提交到后台
+        this.submitToBackend(recommendations);
+        
+        document.getElementById('quiz-content').innerHTML = `
+          <div class="quiz-result">
+            <div class="quiz-result-icon">🎉</div>
+            <h1 class="quiz-result-title">${this.result.title}</h1>
+            <div class="quiz-result-content">
+              <p>${this.result.content}</p>
+            </div>
+            <div class="recommendations">
+              <h3>📋 为您精选课程</h3>
+              ${recommendationsHtml}
+            </div>
+            <div class="quiz-result-contact">
+              <p>📱 微信：私信获取</p>
+            </div>
+            <button class="quiz-btn quiz-btn-secondary quiz-restart" onclick="quiz.startQuiz()">
+              重新测试
+            </button>
+          </div>
+        `;
+      }
+      
+      submitToBackend(recommendations) {
+        try {
+          fetch('/api/quiz/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              answers: this.answers,
+              recommendedCourses: recommendations.map(r => r.title)
+            })
+          }).catch(function(e) { console.warn('提交失败', e); });
+        } catch (e) { console.warn('提交失败', e); }
+      }
+      
+      calculateRecommendations() {
+        // ========== 1. 收集用户画像 ==========
+        const projectMap = {
+          '户外滑雪': 'snow', '室内滑雪': 'offseason',
+          '陆地冲浪': 'land', '户外活动': 'outdoor', '高山滑轮': 'wheel'
+        };
+        const budgetMap = {
+          '经济': [0, 2000], '中档': [2000, 5000],
+          '高端': [5000, 10000], '顶级': [10000, 999999]
+        };
+
+        const getAnswerText = (answer) => {
+          if (!answer) return null;
+          return typeof answer === 'object' ? answer.text : answer;
+        };
+        const getAnswerTags = (answer) => {
+          if (!answer) return [];
+          return typeof answer === 'object' ? (answer.tags || []) : [];
+        };
+
+        const q1Text = getAnswerText(this.answers['q1']);
+        const q2Text = getAnswerText(this.answers['q2']);
+        const q3Tags = getAnswerTags(this.answers['q3']);
+        const q4Tags = getAnswerTags(this.answers['q4']);
+        const q5Text = getAnswerText(this.answers['q5']);
+        const q6Tags = getAnswerTags(this.answers['q6']);
+
+        const userProfile = {
+          ageGroup: q1Text?.includes('5-14') ? 'child' : q1Text?.includes('成人') ? 'adult' : 'youth',
+          projectType: projectMap[q2Text] || null,
+          isBeginner: q3Tags.includes('零基础') || q3Tags.includes('初学者'),
+          timePreference: q4Tags,
+          budget: (() => {
+            for (const [key, [min, max]] of Object.entries(budgetMap)) {
+              if (q5Text?.includes(key)) return { key, min, max };
+            }
+            return { key: '中档', min: 2000, max: 5000 };
+          })(),
+          boardType: q6Tags.includes('单板') ? 'single' : q6Tags.includes('双板') ? 'double' : null
+        };
+
+        // ========== 2. 获取所有课程 ==========
+        const allCourses = [...(this.courses.snow || []), ...(this.courses.offseason || [])];
+
+        // ========== 3. 获取所有活动 ==========
+        const allActivities = this.content?.activities || [];
+
+        // ========== 4. 获取推荐规则 ==========
+        const recommendRules = this.content?.recommendRules || [];
+        
+        // ========== 5. 评分课程（基于规则权重） ==========
+        const scored = allCourses.map(course => {
+          let score = 0;
+          let matchedRules = [];
+          const courseTags = course.tags || [];
+          const courseType = course.type || '';
+          const courseTitle = course.title || '';
+
+          // 根据规则权重评分
+          recommendRules.forEach(rule => {
+            const weight = rule.weight || 6; // 默认权重6
+            let ruleMatch = true;
+            let matchDetails = [];
+            
+            // 映射条件字段到问卷问题
+            const conditionMap = {
+              'goal': 'q2',      // 学习目的 -> 项目类型
+              'budget': 'q5',   // 预算范围 -> 预算问题
+              'experience': 'q3' // 经验 -> 滑雪基础
+            };
+            
+            // 也支持直接用问卷问题ID
+            const directConditionMap = {
+              'q1': 'q1', 'q2': 'q2', 'q3': 'q3', 'q4': 'q4', 'q5': 'q5', 'q6': 'q6'
+            };
+            
+            // 检查规则的条件是否匹配用户答案
+            if (rule.conditions && Object.keys(rule.conditions).length > 0) {
+              for (const [condKey, answer] of Object.entries(rule.conditions)) {
+                if (!answer) continue; // 跳过空条件
+                
+                // 映射到问卷问题ID
+                const qId = conditionMap[condKey] || directConditionMap[condKey] || condKey;
+                const userAnswer = this.answers[qId];
+                
+                if (!userAnswer) { ruleMatch = false; break; }
+                const userAnswerText = typeof userAnswer === 'object' ? userAnswer.text : userAnswer;
+                
+                // 更宽松的匹配：包含或相等
+                if (userAnswerText && (userAnswerText.includes(answer) || answer.includes(userAnswerText))) {
+                  matchDetails.push(qId + ':' + answer);
+                } else {
+                  ruleMatch = false; break;
+                }
+              }
+            }
+            
+            if (ruleMatch && matchDetails.length > 0) {
+              // 规则匹配且有非空条件，获得权重分数
+              score += weight;
+              matchedRules.push({ name: rule.name, weight: weight, details: matchDetails });
+              
+              // 如果规则指定了推荐课程，额外加分
+              const targetCourse = rule.result?.courseTitle?.replace(/^🏔️ |^🌿 /, '') || '';
+              if (targetCourse && courseTitle.includes(targetCourse)) {
+                score += weight * 2; // 指定课程双倍权重
+              }
+            }
+          });
+
+          // 基础分数加成（原有逻辑）
+          if (userProfile.projectType === 'snow' && courseType === 'snow') score += 5;
+          if (userProfile.projectType === 'offseason' && courseType === 'offseason') score += 5;
+          if (userProfile.projectType === 'land' && courseTags.includes('land')) score += 5;
+          if (course.featured) score += 3;
+          if (userProfile.isBeginner && courseTags.includes('热门') && courseType === 'snow') score += 3;
+
+          return { ...course, score, priceNum: 0, matchedRules };
+        });
+
+        // ========== 6. 排序取前4 ==========
+        scored.sort((a, b) => b.score - a.score);
+        const topCourses = scored.slice(0, 4);
+
+        // ========== 7. 计算每门课程的优惠活动 ==========
+        const coursesWithActivities = topCourses.map((course, index) => {
+          const applicableActivities = [];
+          allActivities.forEach(activity => {
+            if (activity.courseTypes && activity.courseTypes.includes(course.type)) {
+              applicableActivities.push(activity);
+            }
+          });
+
+          // 计算最佳省钱方案
+          let bestSaving = null;
+          if (applicableActivities.length > 0) {
+            const sortedActivities = [...applicableActivities].sort((a, b) => {
+              const savingsA = parseInt(a.savings?.match(/\d+/)?.[0] || '0');
+              const savingsB = parseInt(b.savings?.match(/\d+/)?.[0] || '0');
+              return savingsB - savingsA;
+            });
+            bestSaving = sortedActivities[0];
+          }
+
+          return {
+            ...course,
+            matchRate: 95 - index * 8,
+            activities: applicableActivities,
+            bestSaving: bestSaving
+          };
+        });
+
+        return coursesWithActivities;
+      }
+      
+      estimateFinalPrice(originalPrice, activity) {
+        if (!originalPrice || !activity) return originalPrice;
+        const discount = activity.discount || '';
+        if (discount.includes('9折')) {
+          return Math.round(originalPrice * 0.9);
+        }
+        if (discount.includes('立减')) {
+          const amount = parseInt(discount.match(/\d+/)?.[0] || '0');
+          return Math.max(0, originalPrice - amount);
+        }
+        return originalPrice;
+      }
+    }
+
+    const quiz = new Quiz();
+  </script>
+</body>
+</html>
