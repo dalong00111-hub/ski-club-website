@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的 - 极运龙城×趣滑雪俱乐部</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .my-container { max-width: 800px; margin: 40px auto; padding: 20px; }
+    .profile-card { background: white; border-radius: 20px; padding: 40px 30px; text-align: center; box-shadow: var(--shadow-soft); margin-bottom: 30px; }
+    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 3rem; color: white; overflow: hidden; }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-name { font-size: 1.5rem; font-weight: bold; color: var(--text-dark); margin-bottom: 8px; }
+    .profile-phone { color: var(--text-light); font-size: 0.95rem; margin-bottom: 20px; }
+    .login-btn { display: inline-block !important; padding: 16px 50px; background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%) !important; color: white !important; border-radius: 30px; font-size: 1.1rem; font-weight: bold; cursor: pointer; border: none; transition: var(--transition); box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4); text-decoration: none; }
+    .login-btn:hover { transform: scale(1.05); }
+    .menu-section { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-soft); }
+    .menu-item { display: flex; align-items: center; padding: 18px 24px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: var(--transition); text-decoration: none; color: inherit; }
+    .menu-item:last-child { border-bottom: none; }
+    .menu-item:hover { background: #f8f9fa; }
+    .menu-icon { font-size: 1.5rem; margin-right: 16px; }
+    .menu-text { flex: 1; font-size: 1rem; color: var(--text-dark); }
+    .menu-arrow { color: #ccc; font-size: 1.2rem; }
+    .logout-section { margin-top: 30px; text-align: center; }
+    .logout-btn { padding: 14px 40px; background: #f5f5f5; color: #666; border: none; border-radius: 25px; font-size: 1rem; cursor: pointer; }
+    .logout-btn:hover { background: #e0e0e0; }
+    .login-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+    .login-modal.show { display: flex; }
+    .login-modal-content { background: white; border-radius: 20px; padding: 40px 30px; width: 90%; max-width: 400px; text-align: center; position: relative; }
+    .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #999; cursor: pointer; }
+    .phone-login-form { text-align: left; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-dark); }
+    .form-group input { width: 100%; padding: 14px 16px; border: 2px solid var(--ice-blue); border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
+    .form-group input:focus { outline: none; border-color: var(--primary-blue); }
+    .code-input-group { display: flex; gap: 12px; }
+    .code-input-group input { flex: 1; }
+    .send-code-btn { padding: 14px 20px; background: var(--primary-blue); color: white; border: none; border-radius: 10px; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+    .send-code-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .login-submit-btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    .back-btn { margin-top: 16px; background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.9rem; }
+    .back-btn:hover { color: var(--primary-blue); }
+    .toast { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 20px 40px; border-radius: 12px; z-index: 2000; font-size: 1.2rem; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo"><a href="index.html" style="text-decoration:none;color:inherit;">极运龙城×趣滑雪官网</a></div>
+      <ul class="nav-menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="courses.html">了解课程</a></li>
+        <li><a href="quiz.html">如何报课</a></li>
+        <li><a href="lottery.html">抽奖活动</a></li>
+        <li><a href="my.html" class="active">我的</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="my-container">
+      <div class="profile-card" id="profile-card">
+        <div class="profile-avatar" id="avatar" onclick="if(currentUser) uploadAvatar()" style="cursor:pointer;" title="点击更换头像">👤</div>
+        <div id="avatar-hint" style="font-size:0.75rem;color:#999;margin-top:4px;cursor:pointer;" onclick="if(currentUser) uploadAvatar()">点击头像更换上传</div>
+        <input type="file" id="avatar-upload-input" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)">
+        <div class="profile-name" id="profile-name" onclick="if(currentUser) editNickname()" style="cursor:pointer;" title="点击修改昵称">未登录</div>
+        <div class="profile-phone" id="profile-phone">点击下方按钮登录</div>
+        <button class="login-btn" id="login-btn" onclick="logout()">退出登录</button>
+      </div>
+      
+      <div class="menu-section" id="user-menu" style="display:none;">
+        <div class="menu-item" id="admin-menu-item" style="display:none;" onclick="checkAdminPassword()">
+          <span class="menu-icon">⚙️</span>
+          <span class="menu-text">管理后台</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="showMyCourses()">
+          <span class="menu-icon">📚</span>
+          <span class="menu-text">我的课程</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="showMyPrizes()">
+          <span class="menu-icon">🏆</span>
+          <span class="menu-text">我的奖品</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="showMySettings()">
+          <span class="menu-icon">⚙️</span>
+          <span class="menu-text">设置</span>
+          <span class="menu-arrow">›</span>
+        </div>
+      </div>
+      
+      <div class="menu-section" style="margin-top:20px;">
+        <div class="menu-item" onclick="window.location.href='lottery.html'">
+          <span class="menu-icon">🎰</span>
+          <span class="menu-text">抽奖活动</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="showContact()">
+          <span class="menu-icon">📞</span>
+          <span class="menu-text">联系客服</span>
+          <span class="menu-arrow">›</span>
+        </div>
+      </div>
+      
+      <div class="logout-section" id="logout-section" style="display:none;">
+        <button class="logout-btn" onclick="logout()">退出登录</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Login Modal -->
+  <div class="login-modal" id="login-modal">
+    <div class="login-modal-content">
+      <span class="close-modal" onclick="closeLoginModal()">×</span>
+      
+      <div id="login-type-select">
+        <h3>登录</h3>
+        <p>登录后享受更多服务</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <button class="login-btn" onclick="showWechatLogin()" style="background:#07C160;">微信一键登录</button>
+          <button class="login-btn" onclick="showAccountLogin()" style="background:#333;">密码登录</button>
+          <button class="login-btn" onclick="showRegister()" style="background:#07C160;">注册</button>
+        </div>
+      </div>
+      
+      <div id="account-login-form" class="phone-login-form" style="display:none;">
+        <h3>密码登录</h3>
+        <p>使用手机号和密码登录</p>
+        <div class="form-group">
+          <label>手机号</label>
+          <input type="tel" id="account-phone" placeholder="请输入手机号" maxlength="11">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="account-password" placeholder="请输入密码">
+        </div>
+        <button class="login-submit-btn" id="account-login-btn" onclick="doAccountLogin()" style="background: #FF6B35 !important; color: white !important;">登录</button>
+        <button class="back-btn" onclick="showLoginTypeSelect()">返回</button>
+      </div>
+      
+      <div id="register-form" class="phone-login-form" style="display:none;">
+        <h3>注册账号</h3>
+        <p>创建一个新账号</p>
+        <div class="form-group">
+          <label>昵称</label>
+          <input type="text" id="reg-nickname" placeholder="设置您的昵称">
+        </div>
+        <div class="form-group">
+          <label>手机号</label>
+          <input type="tel" id="reg-username" placeholder="请输入电话号码" maxlength="11" oninput="document.getElementById('reg-error').style.display='none'">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="reg-password" placeholder="请输入密码（至少6位）">
+        </div>
+        <div class="form-group">
+          <label>确认密码</label>
+          <input type="password" id="reg-password2" placeholder="请再次输入密码">
+        </div>
+        <div class="form-group" style="font-size:0.85rem;color:#666;text-align:left;">
+          <label style="display:flex;align-items:start;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="reg-agree" style="margin-top:3px;">
+            <span>我已阅读并同意《用户协议》和《隐私政策》</span>
+          </label>
+        </div>
+        <div id="reg-error" style="color:#ff4444;font-size:0.85rem;margin-bottom:10px;display:none;"></div>
+        <div class="reg-tips" style="background:#f5f5f5;padding:12px;border-radius:8px;font-size:0.8rem;color:#666;margin-top:10px;">
+          <p style="margin:0 0 6px 0;font-weight:bold;">📋 注册须知：</p>
+          <ul style="margin:0;padding-left:16px;">
+            <li>手机号用于登录和找回密码</li>
+            <li>密码至少6位，建议使用字母+数字组合</li>
+            <li>昵称将显示在您的个人资料中</li>
+            <li>请确保信息真实有效</li>
+          </ul>
+        </div>
+        <button type="button" class="login-submit-btn" id="register-btn" onclick="doRegister()" style="background: #07C160 !important; color: white !important;">注册</button>
+        <button class="back-btn" onclick="showLoginTypeSelect()">返回</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="login-modal" id="edit-profile-modal">
+    <div class="login-modal-content">
+      <span class="close-modal" onclick="closeEditProfileModal()">×</span>
+      <h3>编辑资料</h3>
+      <div style="text-align:center;margin-bottom:20px;">
+        <div id="avatar-preview" style="width:80px;height:80px;border-radius:50%;background:#f0f0f0;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;overflow:hidden;">👤</div>
+        <label style="display:inline-block;padding:8px 16px;background:#FF6B35;color:white;border-radius:20px;cursor:pointer;font-size:0.9rem;">
+          上传头像
+          <input type="file" id="edit-avatar-file" accept="image/*" style="display:none;" onchange="previewAvatar(this)">
+        </label>
+      </div>
+      <div class="form-group">
+        <label>头像URL（可选）</label>
+        <input type="text" id="edit-avatar" placeholder="或输入头像图片地址" onchange="updateAvatarFromUrl(this.value)">
+      </div>
+      <div class="form-group">
+        <label>昵称</label>
+        <input type="text" id="edit-nickname" placeholder="设置您的昵称">
+      </div>
+      <button class="login-submit-btn" onclick="saveProfile()" style="background: #FF6B35 !important; color: white !important;">保存</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© 2024 极运龙城×趣滑雪俱乐部 | 专业滑雪培训</p>
+      <p>地址：山西省太原市 | 咨询电话：18003411633</p>
+    </div>
+  </footer>
+
+  <script>
+    var currentUser = null;
+    
+    async function checkLogin() {
+      var userStr = localStorage.getItem('ski_user');
+      if (userStr) {
+        try {
+          var localData = JSON.parse(userStr);
+          // Fetch latest user data from server
+          if (localData.phone) {
+            try {
+              var response = await fetch('/api/user/' + localData.phone);
+              var serverData = await response.json();
+              if (serverData.success && serverData.user) {
+                currentUser = serverData.user;
+                localStorage.setItem('ski_user', JSON.stringify(currentUser));
+              } else {
+                currentUser = localData;
+              }
+            } catch (e) {
+              currentUser = localData;
+            }
+          } else {
+            currentUser = localData;
+          }
+          showUserProfile(currentUser);
+        } catch (e) {
+          localStorage.removeItem('ski_user');
+          resetLoginButton();
+        }
+      } else {
+        resetLoginButton();
+      }
+    }
+    
+    function resetLoginButton() {
+      var btn = document.getElementById('login-btn');
+      btn.textContent = '登录 / 注册';
+      btn.onclick = showLoginModal;
+    }
+    
+    
+// 头像上传
+function uploadAvatar() {
+  document.getElementById('avatar-upload-input').click();
+}
+
+function handleAvatarUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  if (!file.type.startsWith('image/')) {
+    alert('请选择图片文件');
+    return;
+  }
+  
+  // Compress and resize image before saving
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var size = 200; // Max dimension
+      canvas.width = size;
+      canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      
+      // Draw image centered and cropped to square
+      var minDim = Math.min(img.width, img.height);
+      var sx = (img.width - minDim) / 2;
+      var sy = (img.height - minDim) / 2;
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      
+      var avatarData = canvas.toDataURL('image/jpeg', 0.5); // Compress to 50% quality to keep file small
+      
+      currentUser.avatar = avatarData;
+      var saved = saveUser(currentUser);
+      if (!saved) {
+        alert('头像保存失败，可能是图片太大，请选择更小的图片');
+        return;
+      }
+      
+      var avatarEl = document.getElementById('avatar');
+      avatarEl.innerHTML = '<img src="' + avatarData + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+      showToast('头像已更新');
+      
+      // Update profile via API
+      updateProfileAPI(currentUser);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// 昵称编辑
+function editNickname() {
+  var nameEl = document.getElementById('profile-name');
+  var currentName = currentUser.name || '';
+  var newName = prompt('请输入新昵称:', currentName);
+  if (newName && newName.trim() && newName.trim() !== currentName) {
+    currentUser.name = newName.trim();
+    saveUser(currentUser);
+    nameEl.textContent = currentUser.name;
+    showToast('昵称已更新');
+    
+    // Update profile via API
+    updateProfileAPI(currentUser);
+  }
+}
+
+// 更新用户资料到服务器
+function updateProfileAPI(user) {
+  // Save name to server immediately
+  fetch('/api/update-profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: user.phone, name: user.name })
+  }).then(res => res.json()).then(data => {
+    if (!data.success) console.log('Profile update failed');
+  }).catch(err => console.log('Profile update error'));
+  
+  // Save avatar separately if it's a data URL (not default emoji)
+  if (user.avatar && user.avatar.startsWith('data:')) {
+    fetch('/api/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: user.phone, avatar: user.avatar })
+    }).then(res => res.json()).then(data => {
+      if (!data.success) console.log('Avatar save failed');
+    }).catch(err => console.log('Avatar save error'));
+  }
+}
+
+function showUserProfile(user) {
+      var avatarEl = document.getElementById('avatar');
+      if (user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:'))) {
+        avatarEl.innerHTML = '<img src="' + user.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+      } else {
+        avatarEl.textContent = user.avatar || '👤';
+      }
+      document.getElementById('profile-name').textContent = user.name || '用户';
+      var phoneEl = document.getElementById('profile-phone');
+      if (user.phone) {
+        phoneEl.textContent = user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+      } else if (user.wechat) {
+        phoneEl.textContent = '微信已绑定';
+      } else {
+        phoneEl.textContent = '';
+      }
+      document.getElementById('login-btn').textContent = '退出登录';
+      document.getElementById('login-btn').onclick = logout;
+      document.getElementById('user-menu').style.display = 'block';
+      // Show admin menu if user has admin or superadmin role
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        document.getElementById('admin-menu-item').style.display = 'flex';
+      } else {
+        document.getElementById('admin-menu-item').style.display = 'none';
+      }
+      document.getElementById('logout-section').style.display = 'block';
+    }
+    
+    function showLoginModal() {
+      document.getElementById('login-modal').classList.add('show');
+      showLoginTypeSelect();
+    }
+    
+    function closeLoginModal() {
+      document.getElementById('login-modal').classList.remove('show');
+    }
+    
+    function showLoginTypeSelect() {
+      document.getElementById('login-type-select').style.display = 'block';
+      document.getElementById('account-login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'none';
+    }
+    
+    function showWechatLogin() {
+      var isWeChat = /MicroMessenger/.test(navigator.userAgent);
+      if (isWeChat) {
+        var user = { name: '微信用户', avatar: '🐱', wechat: '已绑定', createdAt: new Date().toISOString() };
+        saveUser(user);
+        closeLoginModal();
+        showUserProfile(user);
+        showToast('登录成功！');
+      } else {
+        showToast('请在微信中打开本页面使用微信登录');
+      }
+    }
+    
+    function showAccountLogin() {
+      document.getElementById('login-type-select').style.display = 'none';
+      document.getElementById('account-login-form').style.display = 'block';
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('account-phone').value = '';
+      document.getElementById('account-password').value = '';
+    }
+    
+    async function doAccountLogin() {
+      var phone = document.getElementById('account-phone').value.trim();
+      var password = document.getElementById('account-password').value;
+      if (!phone || !password) { showToast('请输入手机号和密码'); return; }
+      if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('请输入正确的手机号'); return; }
+      var btn = document.getElementById('account-login-btn');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+      try {
+        var response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phone, password: password })
+        });
+        var result = await response.json();
+        if (result.success) {
+          result.user.phone = phone;
+          saveUser(result.user);
+          closeLoginModal();
+          showUserProfile(result.user);
+          showToast('登录成功！');
+        } else {
+          showToast(result.error || '登录失败');
+        }
+      } catch (e) {
+        showToast('登录失败，请重试');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '登录';
+      }
+    }
+    
+    function showRegister() {
+      document.getElementById('login-type-select').style.display = 'none';
+      document.getElementById('account-login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'block';
+      document.getElementById('reg-nickname').value = '';
+      document.getElementById('reg-username').value = '';
+      document.getElementById('reg-password').value = '';
+      document.getElementById('reg-password2').value = '';
+    }
+    
+    function doRegister() {
+      var phone = document.getElementById('reg-username').value.trim();
+      var nickname = document.getElementById('reg-nickname').value.trim();
+      var password = document.getElementById('reg-password').value;
+      var password2 = document.getElementById('reg-password2').value;
+      var agree = document.getElementById('reg-agree');
+      
+      if (agree && !agree.checked) { showToast('请先阅读并同意用户协议'); return; }
+      if (!phone) { showToast('请输入手机号'); return; }
+      if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('请输入正确的手机号'); return; }
+      if (!nickname) { showToast('请输入昵称'); return; }
+      if (!password) { showToast('请输入密码'); return; }
+      if (password.length < 6) { showToast('密码至少6位'); return; }
+      if (password !== password2) { showToast('两次密码不一致'); return; }
+      
+      var btn = document.getElementById('register-btn');
+      btn.disabled = true;
+      btn.textContent = '注册中...';
+      
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/register', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          btn.disabled = false;
+          btn.textContent = '注册';
+          if (xhr.status === 200) {
+            try {
+              var result = JSON.parse(xhr.responseText);
+              if (result.success) {
+                result.user.name = nickname || phone;
+                result.user.phone = phone;
+                saveUser(result.user);
+                closeLoginModal();
+                showUserProfile(result.user);
+                showToast('注册成功！');
+              } else {
+                var errMsg = '⚠️ ' + (result.error || '注册失败');
+                var errEl = document.getElementById('reg-error');
+                if (errEl) {
+                  errEl.textContent = errMsg;
+                  errEl.style.display = 'block';
+                }
+                // Use alert for errors so user definitely sees it
+                alert(result.error || '注册失败');
+              }
+            } catch (e) {
+              showToast('数据解析错误');
+            }
+          } else {
+            showToast('请求失败');
+          }
+        }
+      };
+      xhr.send(JSON.stringify({ phone: phone, password: password, nickname: nickname }));
+    }
+    
+    function saveUser(user) {
+      if (!user.phone && currentUser && currentUser.phone) {
+        user.phone = currentUser.phone;
+      }
+      currentUser = user;
+      try {
+        localStorage.setItem('ski_user', JSON.stringify(user));
+        return true;
+      } catch (e) {
+        console.error('localStorage save failed:', e);
+        return false;
+      }
+    }
+    
+    function logout() {
+      if (!confirm('确定要退出登录吗？')) return;
+      localStorage.removeItem('ski_user');
+      currentUser = null;
+      location.reload();
+    }
+    
+    function showToast(msg) {
+      var toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(function() { toast.remove(); }, 3000);
+    }
+    
+    function showMyCourses() { showToast('我的课程功能开发中...'); }
+    function showMyPrizes() {
+      if (!currentUser || !currentUser.phone) { showToast('请先登录'); return; }
+      
+      // 先获取最新用户数据确保phone正确
+      fetch('/api/user/' + currentUser.phone)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success && data.user && data.user.phone) {
+            currentUser = data.user;
+            localStorage.setItem('ski_user', JSON.stringify(currentUser));
+          }
+          showMyPrizesContent();
+        })
+        .catch(function() {
+          showMyPrizesContent();
+        });
+    }
+    
+    function showMyPrizesContent() {
+      // 创建奖品记录弹窗
+      var modal = document.createElement('div');
+      modal.id = 'my-prizes-modal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+      modal.innerHTML = '<div style="background:white;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;border-radius:16px;padding:24px;position:relative;">' +
+        '<h2 style="margin:0 0 16px 0;color:#0039A6;">🏆 我的奖品</h2>' +
+        '<div id="my-prizes-content" style="margin:16px 0;">加载中...</div>' +
+        '<button onclick="document.getElementById(\'my-prizes-modal\').remove()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;">×</button>' +
+        '</div>';
+      document.body.appendChild(modal);
+      
+      // 使用正确的API获取我的奖品
+      fetch('/api/my/prizes/' + currentUser.phone)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data.success) {
+            document.getElementById('my-prizes-content').innerHTML = '<p style="text-align:center;color:#666;padding:40px 0;">' + (data.error||'加载失败') + '</p>';
+            return;
+          }
+          var prizes = data.prizes || [];
+          if (prizes.length === 0) {
+            document.getElementById('my-prizes-content').innerHTML = '<p style="text-align:center;color:#666;padding:40px 0;">暂无中奖记录<br><br><a href="lottery.html" style="color:#0039A6;">去参与抽奖 →</a></p>';
+            return;
+          }
+          var html = '<div style="display:flex;flex-direction:column;gap:12px;">';
+          prizes.forEach(function(p) {
+            var date = new Date(p.wonAt).toLocaleString('zh-CN');
+            // 检查是否过期
+            var isExpired = false;
+            var expireInfo = '';
+            if (p.expireDate) {
+              var expireDate = new Date(p.expireDate);
+              if (expireDate < new Date()) {
+                isExpired = true;
+                expireInfo = '<span style="background:#dc3545;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;margin-left:8px;">已作废</span>';
+              } else {
+                expireInfo = '<span style="background:#28a745;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;margin-left:8px;">有效期至:' + p.expireDate + '</span>';
+              }
+            }
+            var borderColor = isExpired ? '#999' : '#FF6B35';
+            var html_prize = '<div style="background:#f8f9fa;padding:16px;border-radius:12px;border-left:4px solid ' + borderColor + ';opacity:' + (isExpired ? '0.7' : '1') + ';">' +
+              '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+              '<span style="font-size:1.5rem;">' + (p.icon||'🎁') + '</span>' +
+              '<span style="font-weight:bold;font-size:1.1rem;color:' + (isExpired ? '#999' : '#333') + ';">' + p.prize + '</span>' + expireInfo +
+              '</div>' +
+              '<div style="font-size:0.85rem;color:#666;">活动：' + p.lotteryName + '</div>' +
+              '<div style="font-size:0.85rem;color:#666;">中奖时间：' + date + '</div>';
+            if (p.description) {
+              html_prize += '<div style="font-size:0.85rem;color:#666;margin-top:4px;">内容：' + p.description + '</div>';
+            }
+            if (p.rules) {
+              html_prize += '<div style="font-size:0.85rem;color:#666;margin-top:4px;">使用规则：' + p.rules + '</div>';
+            }
+            html_prize += '</div>';
+            html += html_prize;
+          });
+          html += '</div>';
+          document.getElementById('my-prizes-content').innerHTML = html;
+        })
+        .catch(function(err) {
+          document.getElementById('my-prizes-content').innerHTML = '<p style="text-align:center;color:#f00;padding:40px 0;">加载失败</p>';
+        });
+    }
+    function showMySettings() {
+      if (!currentUser) { showToast('请先登录'); return; }
+      document.getElementById('edit-nickname').value = currentUser.name || '';
+      var avatarUrl = currentUser.avatar && currentUser.avatar.startsWith('http') ? currentUser.avatar : '';
+      document.getElementById('edit-avatar').value = avatarUrl;
+      if (avatarUrl) {
+        document.getElementById('avatar-preview').innerHTML = '<img src="' + avatarUrl + '" style="width:100%;height:100%;object-fit:cover;">';
+      } else {
+        document.getElementById('avatar-preview').innerHTML = '👤';
+      }
+      document.getElementById('edit-profile-modal').classList.add('show');
+    }
+    function showContact() { showToast('客服电话：18003411633'); }
+    
+    function closeEditProfileModal() {
+      document.getElementById('edit-profile-modal').classList.remove('show');
+    }
+    
+    function previewAvatar(input) {
+      if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('avatar-preview').innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;">';
+          document.getElementById('edit-avatar').value = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+    
+    function updateAvatarFromUrl(url) {
+      if (url && url.startsWith('http')) {
+        document.getElementById('avatar-preview').innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;">';
+      }
+    }
+    
+    async function saveProfile() {
+      var avatar = document.getElementById('edit-avatar').value.trim();
+      var nickname = document.getElementById('edit-nickname').value.trim();
+      if (!nickname) { showToast('请输入昵称'); return; }
+      currentUser.name = nickname;
+      currentUser.avatar = avatar || '👤';
+      localStorage.setItem('ski_user', JSON.stringify(currentUser));
+      if (currentUser.phone) {
+        try {
+          var response = await fetch('/api/update-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: currentUser.phone, name: nickname, avatar: currentUser.avatar })
+          });
+          var result = await response.json();
+          if (!result.success) {
+            showToast('保存失败');
+            return;
+          }
+        } catch (e) {
+          showToast('网络错误');
+          return;
+        }
+      }
+      closeEditProfileModal();
+      showUserProfile(currentUser);
+      showToast('保存成功！');
+    }
+    
+    function checkAdminPassword() {
+      // Check if user has admin role
+      if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'superadmin')) {
+        // Store permissions for admin panel to use
+        localStorage.setItem('admin_permissions', JSON.stringify({
+          role: currentUser.role,
+          permissions: currentUser.permissions || {}
+        }));
+        window.location.href = 'admin.html';
+      } else {
+        showToast('您没有管理后台权限');
+      }
+    }
+    
+    document.getElementById('login-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeLoginModal();
+    });
+    
+    checkLogin();
+  </script>
+</body>
+</html>
