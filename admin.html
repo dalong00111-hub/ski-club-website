@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>极运龙城×趣滑雪俱乐部 - 后台管理</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 0;
+      border-bottom: 2px solid var(--ice-blue);
+      padding-bottom: 0;
+      flex-wrap: wrap;
+    }
+    .admin-tab {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-light);
+      transition: var(--transition);
+      margin-bottom: -2px;
+    }
+    .admin-tab:hover { color: var(--primary-blue); }
+    .admin-tab.active { color: var(--primary-blue); border-bottom-color: var(--primary-blue); }
+    .admin-panel { display: none; }
+    .admin-panel.active { display: block; }
+    .admin-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--ice-blue);
+      color: var(--primary-blue);
+      border-radius: 10px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .admin-back:hover { background: var(--primary-blue); color: white; }
+    .admin-subtabs {
+      display: none;
+      gap: 4px;
+      padding: 8px 16px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #eee;
+    }
+    .admin-subtabs.visible { display: flex; flex-wrap: wrap; }
+    .admin-subtab {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #666;
+      transition: var(--transition);
+    }
+    .admin-subtab:hover { background: #e9ecef; color: var(--primary-blue); }
+    .admin-subtab.active { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      z-index: 10001;
+      transition: transform 0.3s;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #10b981; color: white; }
+    .toast.error { background: #ef4444; color: white; }
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--card-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      border: 1px solid var(--ice-blue);
+    }
+    .list-item-image { width: 80px; height: 60px; border-radius: 8px; overflow: hidden; background: var(--ice-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .list-item-image img { width: 100%; height: 100%; object-fit: cover; }
+    .list-item-info { flex: 1; }
+    .list-item-info h4 { margin: 0 0 4px 0; color: var(--primary-blue); }
+    .list-item-info p { margin: 0; color: var(--text-light); font-size: 0.9rem; }
+    .list-item-actions { display: flex; gap: 8px; }
+    .btn-small { padding: 6px 12px; font-size: 0.85rem; }
+    .btn-edit { padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .btn-delete { padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .btn-action { padding: 6px 12px; background: var(--primary-blue); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-dark); }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid var(--ice-blue);
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+    }
+    .admin-section { background: var(--card-bg); padding: 20px; border-radius: var(--radius-md); margin-bottom: 20px; }
+    .admin-section h2 { color: var(--primary-blue); margin-bottom: 8px; }
+    .admin-section h3 { color: var(--primary-blue); margin-bottom: 16px; }
+    .image-upload-area {
+      border: 2px dashed var(--ice-blue);
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .image-upload-area:hover { border-color: var(--primary-blue); background: rgba(0,57,166,0.05); }
+    .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-hint { color: var(--text-light); font-size: 0.9rem; }
+    .account-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .account-row .acc-info { flex: 1; min-width: 150px; }
+    .account-row .acc-phone { color: #666; font-size: 0.9rem; }
+    .account-row .acc-role { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; margin-left: 8px; }
+    .role-superadmin { background: #ffd700; color: #333; }
+    .role-admin { background: #3b82f6; color: white; }
+    .role-user { background: #10b981; color: white; }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    .modal-box {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-box h3 { margin-bottom: 20px; color: var(--primary-blue); }
+    .records-table { width: 100%; border-collapse: collapse; }
+    .records-table th { background: #f0f0f0; padding: 10px; text-align: left; font-weight: 600; }
+    .records-table td { padding: 10px; border-bottom: 1px solid #eee; }
+    .records-table tr:hover { background: #f8f9fa; }
+    .prize-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    .prize-item .prize-icon { font-size: 2rem; }
+    .prize-item .prize-info { flex: 1; }
+    .prize-item .prize-actions { display: flex; gap: 8px; }
+    .pwd-toggle { padding: 8px 12px; background: #e9ecef; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+    .perm-group { margin-bottom: 16px; }
+    .perm-group h4 { color: var(--primary-blue); margin-bottom: 8px; font-size: 0.95rem; }
+    .perm-items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .perm-item { display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: #f0f0f0; border-radius: 6px; font-size: 0.85rem; }
+    .search-box { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-box input { flex: 1; min-width: 150px; }
+  </style>
+</head>
+<body>
+  <!-- 登录模态框 -->
+  <div id="login-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);z-index:99999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:20px;padding:40px 30px;width:90%;max-width:400px;text-align:center;">
+      <h2 style="color:#0039A6;margin-bottom:24px;">🔐 后台管理登录</h2>
+      <div style="margin-bottom:16px;">
+        <input type="tel" id="login-phone" placeholder="请输入管理员手机号" style="width:100%;padding:12px;border:2px solid #87CEEB;border-radius:8px;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <input type="password" id="login-password" placeholder="请输入密码" style="width:100%;padding:12px;border:2px solid #87CEEB;border-radius:8px;box-sizing:border-box;">
+      </div>
+      <div id="login-error" style="color:#dc3545;margin-bottom:12px;display:none;"></div>
+      <button id="login-btn" style="width:100%;padding:14px;background:#0039A6;color:white;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">登录</button>
+    </div>
+  </div>
+
+  <script>
+    // 立即显示登录框并清空之前的账号
+    var modal = document.getElementById('login-modal');
+    modal.style.display = 'flex';
+    document.getElementById('login-phone').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').style.display = 'none';
+    document.getElementById('login-btn').onclick = function() {
+      var phone = document.getElementById('login-phone').value.trim();
+      var password = document.getElementById('login-password').value;
+      if (!phone || !password) {
+        document.getElementById('login-error').textContent = '请输入账号和密码';
+        document.getElementById('login-error').style.display = 'block';
+        return;
+      }
+      fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone, password: password })
+      }).then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success) {
+            window.currentAdminUser = data.user;
+            document.getElementById('login-modal').style.display = 'none';
+            document.getElementById('admin-main').style.display = 'block';
+            window.adminLoginSuccess && window.adminLoginSuccess(data.user);
+          } else {
+            document.getElementById('login-error').textContent = data.error || '登录失败';
+            document.getElementById('login-error').style.display = 'block';
+          }
+        });
+    };
+  </script>
+
+
+  <div class="admin-container" id="admin-main" style="display:none;">
+    <div class="admin-header">
+      <h1>🏔️ 内容管理后台</h1>
+      <p>管理极运龙城×趣滑雪俱乐部的所有内容</p>
+      <a href="index.html" class="admin-back">← 返回首页</a>
+    </div>
+
+    <!-- 主标签 -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="home">🏠 首页信息</button>
+      <button class="admin-tab" data-tab="courses">🎿 了解课程</button>
+      <button class="admin-tab parent-tab" data-tab="apply">📝 如何报课 ▾</button>
+      <button class="admin-tab parent-tab" data-tab="lottery">🎁 抽奖活动</button>
+      <button class="admin-tab parent-tab" data-tab="accounts">👥 管理账号</button>
+    </div>
+
+    <!-- 如何报课 子菜单 -->
+    <div class="admin-subtabs" id="apply-subtabs">
+      <button class="admin-subtab active" data-tab="apply">📝 问卷设置</button>
+      <button class="admin-subtab" data-tab="coupon">🎫 优惠活动</button>
+      <button class="admin-subtab" data-tab="library">📚 课程库</button>
+      <button class="admin-subtab" data-tab="rules">🧠 推荐规则</button>
+      <button class="admin-subtab" data-tab="quizStats">📊 问卷统计</button>
+    </div>
+
+    <!-- 抽奖活动 子菜单 -->
+    <div class="admin-subtabs" id="lottery-subtabs">
+      <button class="admin-subtab active" data-tab="lottery-create">🎰 创建抽奖</button>
+      <button class="admin-subtab" data-tab="lottery-records">📋 抽奖记录</button>
+      <button class="admin-subtab" data-tab="lottery-history">📜 历史记录</button>
+    </div>
+
+    <!-- 管理账号 子菜单 -->
+    <div class="admin-subtabs" id="accounts-subtabs">
+      <button class="admin-subtab active" data-tab="create-account">➕ 创建账号</button>
+      <button class="admin-subtab" data-tab="all-accounts">📋 全部账号</button>
+    </div>
+
+    <!-- ========== 首页信息 ========== -->
+    <div class="admin-panel active" id="panel-home">
+      <div class="admin-section">
+        <h2>🏢 俱乐部信息</h2>
+        <form id="club-form"></form>
+      </div>
+      <div class="admin-section">
+        <h3>🖼️ 轮播图管理</h3>
+        <div id="hero-slides-list"></div>
+      </div>
+      <div class="admin-section">
+        <h3>👤 创始人信息</h3>
+        <form id="founder-form"></form>
+      </div>
+      <div class="admin-section">
+        <h3>🏔️ 训练基地</h3>
+        <div id="bases-list"></div>
+      </div>
+      <div class="admin-section">
+        <h3>🏆 优秀队员</h3>
+        <div id="athletes-list"></div>
+      </div>
+      <div class="admin-section">
+        <h3>📋 菜单导航</h3>
+        <div id="menu-list"></div>
+      </div>
+    </div>
+
+    <!-- ========== 了解课程 ========== -->
+    <div class="admin-panel" id="panel-courses">
+      <div class="admin-section">
+        <h2>🎿 了解课程</h2>
+        <h3>📄 页面内容编辑</h3>
+        <div id="courses-page-form"></div>
+      </div>
+      <div class="admin-section">
+        <h3>❄️ 雪季课程</h3>
+        <button class="btn btn-primary" onclick="admin.addCourse('snow')" style="margin-bottom:16px;">+ 添加雪季课程</button>
+        <div id="courses-snow-list"></div>
+      </div>
+      <div class="admin-section">
+        <h3>🌿 非雪季课程</h3>
+        <button class="btn btn-primary" onclick="admin.addCourse('offseason')" style="margin-bottom:16px;">+ 添加非雪季课程</button>
+        <div id="courses-offseason-list"></div>
+      </div>
+    </div>
+
+    <!-- ========== 问卷设置 ========== -->
+    <div class="admin-panel" id="panel-apply">
+      <div class="admin-section">
+        <h2>📝 问卷设置</h2>
+        <h3>🔄 起始问题</h3>
+        <div class="form-group">
+          <label>起始问题ID</label>
+          <input type="text" id="quiz-start-id" placeholder="如: q1" style="width:100%;padding:10px;border:2px solid var(--ice-blue);border-radius:8px;">
+        </div>
+        <button class="btn btn-primary" onclick="admin.saveQuizSettings()" style="margin-top:10px;">保存起始问题</button>
+      </div>
+      <div class="admin-section">
+        <h3>📋 问卷题目列表</h3>
+        <div style="margin-bottom:16px;"><button class="btn btn-primary" onclick="admin.addQuestion()">+ 添加问题</button></div>
+        <div id="quiz-questions-tree"></div>
+      </div>
+      <div class="admin-section">
+        <h3>✅ 结束页面设置</h3>
+        <div id="quiz-result-form"></div>
+      </div>
+    </div>
+
+    <!-- ========== 优惠活动 ========== -->
+    <div class="admin-panel" id="panel-coupon">
+      <div class="admin-section">
+        <h2>🎪 优惠活动管理</h2>
+        <div style="margin-bottom:20px;">
+          <button onclick="admin.addActivity()" class="btn btn-primary">+ 添加活动</button>
+          <button onclick="admin.importActivitiesExcel()" class="btn btn-secondary" style="margin-left:10px;">📥 导入Excel</button>
+          <button onclick="admin.importActivitiesWPS()" class="btn btn-secondary" style="margin-left:10px;">🌐 导入WPS在线表格</button>
+        </div>
+        <div id="activities-list"></div>
+      </div>
+    </div>
+
+    <!-- ========== 课程库 ========== -->
+    <div class="admin-panel" id="panel-library">
+      <div class="admin-section">
+        <h2>📚 课程库</h2>
+        <h3>🏷️ 课程分类</h3>
+        <div id="course-categories" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px;"></div>
+      </div>
+      <div id="category-courses" style="display:none;">
+        <div class="admin-section">
+          <h3 id="current-category-title">课程列表</h3>
+          <div id="courses-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 推荐规则 ========== -->
+    <div class="admin-panel" id="panel-rules">
+      <div class="admin-section">
+        <h2>🧠 推荐规则</h2>
+        <div id="recommendation-config"></div>
+      </div>
+      <div class="admin-section">
+        <h3>📋 规则列表</h3>
+        <div id="rules-list"></div>
+        <button onclick="admin.addRule()" class="btn btn-primary" style="margin-top:12px;">+ 添加规则</button>
+      </div>
+    </div>
+
+    <!-- ========== 问卷统计 ========== -->
+    <div class="admin-panel" id="panel-quizStats">
+      <div class="admin-section">
+        <h2>📊 问卷统计</h2>
+        <div id="quiz-statistics-data"></div>
+      </div>
+    </div>
+
+    <!-- ========== 创建抽奖 ========== -->
+    <div class="admin-panel" id="panel-lottery-create">
+      <div class="admin-section">
+        <h2>🎰 创建抽奖活动</h2>
+        <p style="color:var(--text-light);margin-bottom:20px;">设置抽奖规则、奖品、开奖时间</p>
+
+        <h3 style="color:var(--primary-blue);margin-bottom:16px;">⚙️ 基本设置</h3>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="lottery-enabled-create">
+            <span>启用抽奖活动</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>活动名称</label>
+          <input type="text" id="lottery-name-create" placeholder="如：新年大抽奖">
+        </div>
+        <div class="form-group">
+          <label>抽奖规则说明</label>
+          <textarea id="lottery-rules-create" rows="4" placeholder="每行一条规则" style="width:100%;padding:10px;border:2px solid var(--ice-blue);border-radius:8px;resize:vertical;">1. 每位用户每个手机号仅限参与一次
+2. 抽奖结果将在活动结束后公布
+3. 中奖后请到店出示手机号领取
+4. 本活动最终解释权归本店所有</textarea>
+        </div>
+
+        <h3 style="color:var(--primary-blue);margin-bottom:16px;margin-top:24px;">📊 抽奖设置</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+          <div class="form-group">
+            <label>每人抽奖次数</label>
+            <input type="number" id="lottery-times-create" value="1" min="0">
+            <p style="color:#666;font-size:0.85rem;margin-top:4px;">💡 0 = 不限制次数</p>
+          </div>
+          <div class="form-group">
+            <label>抽奖间隔（分钟）</label>
+            <input type="number" id="lottery-interval-create" value="0" min="0">
+            <p style="color:#666;font-size:0.85rem;margin-top:4px;">💡 0 = 不限制间隔时间</p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>抽奖类型</label>
+          <select id="lottery-type-create" onchange="admin.toggleLotteryType()" style="width:100%;padding:10px;border:2px solid var(--ice-blue);border-radius:8px;">
+            <option value="probability">🎲 概率模式</option>
+            <option value="guaranteed">🏆 保底模式（奖项必出）</option>
+          </select>
+        </div>
+        
+        <div id="guaranteed-settings" style="display:none;margin-top:16px;padding:16px;background:#f0f9ff;border-radius:12px;border:2px solid #3b82f6;">
+          <h4 style="color:#0039A6;margin-bottom:12px;">🏆 保底模式设置</h4>
+          <p style="color:#666;font-size:0.9rem;margin-bottom:12px;">★ 在下方选中的奖品为必出奖品（每次开奖必定抽出），其他未选中奖品按概率抽取</p>
+          <div id="guaranteed-prizes-list"></div>
+          <button onclick="admin.addToGuaranteed()" class="btn btn-primary" style="margin-top:12px;">+ 添加奖品到必出列表</button>
+        </div>
+        
+        <div class="form-group">
+          <label>开奖时间</label>
+          <input type="datetime-local" id="lottery-draw-time-create">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+          <button type="button" onclick="admin.manualDraw()" class="btn btn-warning" style="padding:10px 20px;">🎲 立即开奖</button>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="lottery-auto-draw" checked>
+            <span>自动开奖</span>
+          </label>
+          <span id="draw-status" style="color:var(--text-light);font-size:0.85rem;"></span>
+        </div>
+
+        <h3 style="color:var(--primary-blue);margin-bottom:16px;margin-top:24px;">🏆 奖品设置</h3>
+        <div id="prizes-list-create"></div>
+        <button onclick="admin.addPrizeNew()" class="btn btn-primary" style="margin-top:12px;">+ 添加奖品</button>
+
+        <h3 style="color:var(--primary-blue);margin-bottom:16px;margin-top:24px;">📝 抽奖表单设置</h3>
+        <p style="color:var(--text-light);margin-bottom:12px;">设置用户参与抽奖时需要填写的表单字段</p>
+        <div id="form-fields-list" style="margin-bottom:12px;"></div>
+        <button type="button" onclick="admin.addFormField()" class="btn btn-secondary" style="margin-bottom:12px;">+ 添加字段</button>
+
+        <div style="margin-top:24px;">
+          <button onclick="admin.saveLotterySettingsNew()" class="btn btn-primary" style="padding:12px 32px;font-size:1rem;">💾 保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 抽奖记录 ========== -->
+    <div class="admin-panel" id="panel-lottery-records">
+      <div class="admin-section">
+        <h2>📋 抽奖记录</h2>
+        <p style="color:var(--text-light);margin-bottom:20px;">实时同步显示抽奖记录，可删除</p>
+        <button onclick="admin.loadLotteryRecords()" class="btn btn-primary">🔄 刷新记录</button>
+          <button onclick="admin.exportLotteryRecords()" class="btn btn-success" style="margin-left:8px;">📥 导出中奖</button>
+        <div id="lottery-records-list" style="max-height:500px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <!-- ========== 历史记录 ========== -->
+    <div class="admin-panel" id="panel-lottery-history">
+      <div class="admin-section">
+        <h2>📜 历史记录</h2>
+        <p style="color:var(--text-light);margin-bottom:20px;">历史抽奖顺序，记录永久保存，不被删除</p>
+        <button onclick="admin.loadLotteryHistory()" class="btn btn-primary">🔄 刷新历史</button>
+          <button onclick="admin.exportLotteryHistory()" class="btn btn-success" style="margin-left:8px;">📥 导出中奖</button>
+        <div id="lottery-history-list" style="max-height:500px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <!-- ========== 创建账号 ========== -->
+    <div class="admin-panel" id="panel-create-account">
+      <div class="admin-section">
+        <h2>➕ 创建账号</h2>
+        <p style="color:var(--text-light);margin-bottom:20px;">创建新账号并设置角色和权限</p>
+
+        <div class="form-group">
+          <label>姓名</label>
+          <input type="text" id="new-acc-name" placeholder="请输入姓名">
+        </div>
+        <div class="form-group">
+          <label>手机号（账号）</label>
+          <input type="tel" id="new-acc-phone" placeholder="请输入11位手机号" maxlength="11">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <div style="display:flex;gap:8px;">
+            <input type="password" id="new-acc-pwd" placeholder="请输入密码（至少6位）" style="flex:1;">
+            <button type="button" class="pwd-toggle" onclick="admin.togglePasswordVisibility('new-acc-pwd', this)">👁️</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>角色</label>
+          <select id="new-acc-role" style="width:100%;padding:10px;border:2px solid var(--ice-blue);border-radius:8px;">
+            <option value="user">普通用户</option>
+            <option value="admin">普通管理员</option>
+            <option value="superadmin">超级管理员</option>
+          </select>
+        </div>
+        <div id="new-acc-perm-box" style="display:none;margin-top:16px;padding:16px;background:#f8f9fa;border-radius:8px;">
+          <h4 style="color:var(--primary-blue);margin-bottom:12px;">🔐 权限配置（管理员）</h4>
+          <div id="new-acc-perm-list"></div>
+        </div>
+        <button onclick="admin.createAccount()" class="btn btn-primary" style="margin-top:16px;">✅ 创建账号</button>
+      </div>
+    </div>
+
+    <!-- ========== 全部账号 ========== -->
+    <div class="admin-panel" id="panel-all-accounts">
+      <div class="admin-section">
+        <h2>👥 全部账号</h2>
+        <p style="color:var(--text-light);margin-bottom:20px;">管理所有账号（超级管理员账号不可见）</p>
+
+        <div class="search-box">
+          <input type="text" id="search-name" placeholder="搜索姓名">
+          <input type="text" id="search-phone" placeholder="搜索账号">
+          <button onclick="admin.searchAccounts()" class="btn btn-primary">🔍 搜索</button>
+          <button onclick="admin.loadAccountsList()" class="btn btn-secondary">🔄 刷新</button>
+        </div>
+
+        <div id="accounts-list"></div>
+      </div>
+    </div>
+
+    <div id="toast-container"></div>
+  </div>
+
+  <script src="js/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var modal = document.getElementById('login-modal');
+      var main = document.getElementById('admin-main');
+      if (modal) modal.style.display = 'flex';
+      if (main) main.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
