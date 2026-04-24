@@ -4,27 +4,29 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = 3000;
-const CONTENT_FILE = path.join(__dirname, 'data/content.json');
-const USERS_FILE = path.join(__dirname, 'data/users.json');
 
-// 用户数据存储（模块级别）
-const users = {};
-// 加载用户数据
+// 数据库
+const { db, getContent, setContent, getUsers, setUser, getUser } = require('./db.js');
+
+// 用户数据缓存（模块级别）
+let users = {};
+
+// 加载用户数据 → 从SQLite
 function loadUsers() {
   try {
-    if (fs.existsSync(USERS_FILE)) {
-      const data = fs.readFileSync(USERS_FILE, 'utf-8');
-      const loaded = JSON.parse(data);
-      Object.assign(users, loaded);
-    }
+    users = getUsers();
   } catch (e) { console.log('加载用户数据失败:', e.message); }
 }
-// 保存用户数据
+
+// 保存用户数据 → 写入SQLite
 function saveUsers() {
   try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+    for (const [phone, user] of Object.entries(users)) {
+      setUser(phone, user);
+    }
   } catch (e) { console.log('保存用户数据失败:', e.message); }
 }
+
 // 初始化加载
 loadUsers();
 // 超级管理员账号 - 只在用户不存在时创建
@@ -159,7 +161,9 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         JSON.parse(body);
-        fs.writeFileSync(CONTENT_FILE, body, 'utf-8');
+        // 写入SQLite
+        const fullContent = JSON.parse(body);
+        setContent('_full', fullContent);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
         console.log('✅ 内容已保存', new Date().toLocaleTimeString());
@@ -174,9 +178,9 @@ const server = http.createServer((req, res) => {
   // API: 读取内容 (GET)
   if (req.method === 'GET' && req.url === '/api/content') {
     try {
-      const content = fs.readFileSync(CONTENT_FILE, 'utf-8');
+      const content = getContent('_full') || {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(content);
+      res.end(JSON.stringify(content));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));
@@ -226,7 +230,7 @@ const server = http.createServer((req, res) => {
   // API: 获取课程表链接 (放在文件服务之前)
   if (req.method === 'GET' && req.url.startsWith('/api/course-table/')) {
     const courseId = req.url.split('/api/course-table/')[1];
-    const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+    const contentData = getContent('_full');
     const snowCourse = contentData.courses?.snow?.find(c => c.id === courseId);
     const offseasonCourse = contentData.courses?.offseason?.find(c => c.id === courseId);
     const course = snowCourse || offseasonCourse;
@@ -242,7 +246,7 @@ const server = http.createServer((req, res) => {
 
   // API: 获取推荐规则
   if (req.method === 'GET' && req.url === '/api/rules') {
-    const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+    const contentData = getContent('_full');
     const rules = contentData.recommendRules || [];
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, rules: rules }));
@@ -251,7 +255,7 @@ const server = http.createServer((req, res) => {
 
   // API: 获取活动列表
   if (req.method === 'GET' && req.url === '/api/activities') {
-    const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+    const contentData = getContent('_full');
     const activities = contentData.activities || [];
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, activities: activities }));
@@ -261,7 +265,7 @@ const server = http.createServer((req, res) => {
   // API: 获取单个活动
   if (req.method === 'GET' && req.url.startsWith('/api/activity/')) {
     const activityId = req.url.split('/api/activity/')[1];
-    const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+    const contentData = getContent('_full');
     const activity = (contentData.activities || []).find(a => a.id === activityId || a.title === activityId);
     if (activity) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -551,7 +555,7 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
           return;
         }
         
-        const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+        const contentData = getContent('_full');
         let lottery = contentData.lottery;
         if (!lottery) {
           lottery = { records: [], history: [], prizes: [], enabled: true };
@@ -587,7 +591,7 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
           };
         }
         
-        fs.writeFileSync(CONTENT_FILE, JSON.stringify(contentData, null, 2), 'utf-8');
+        setContent('_full', contentData);
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: '参与成功，等待开奖' }));
@@ -602,7 +606,7 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
 // API: 手动开奖 (POST)
   if (req.method === 'POST' && req.url === '/api/lottery/draw') {
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       const lottery = contentData.lottery;
       
       if (!lottery || !lottery.records || lottery.records.length === 0) {
@@ -687,7 +691,7 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
       lottery.records = [];
       lottery.drawn = true;
       
-      fs.writeFileSync(CONTENT_FILE, JSON.stringify(contentData, null, 2), 'utf-8');
+      setContent('_full', contentData);
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, winners: winners.length }));
@@ -707,7 +711,7 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
       return;
     }
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       const users = contentData.users || {};
       const user = users[phone];
       if (!user) {
@@ -731,7 +735,7 @@ if (req.method === 'POST' && req.url === '/api/quiz/submit') {
     req.on('end', () => {
         try {
             const data = JSON.parse(body);
-            const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+            const contentData = getContent('_full');
             
             if (!contentData.quizSubmissions) contentData.quizSubmissions = [];
             
@@ -758,7 +762,7 @@ if (req.method === 'POST' && req.url === '/api/quiz/submit') {
 // 获取问卷统计
 if (req.method === 'GET' && req.url.split('?')[0] === '/api/quiz/statistics') {
     try {
-        const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+        const contentData = getContent('_full');
         const submissions = contentData.quizSubmissions || [];
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -817,7 +821,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   // API: 获取抽奖记录 (GET)
   if (req.method === 'GET' && req.url === '/api/lottery/records') {
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       const lottery = contentData.lottery || { records: [] };
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, records: lottery.records || [] }));
@@ -831,7 +835,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   // API: 获取历史记录 (GET)
   if (req.method === 'GET' && req.url === '/api/lottery/history') {
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       const lottery = contentData.lottery || { history: [] };
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, history: lottery.history || [] }));
@@ -845,7 +849,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   // API: 获取抽奖设置 (GET)
   if (req.method === 'GET' && req.url === '/api/lottery/settings') {
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       const lottery = contentData.lottery || { enabled: true, prizes: [], records: [], history: [], settings: {} };
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
@@ -886,7 +890,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
           return;
         }
         
-        const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+        const contentData = getContent('_full');
         let lottery = contentData.lottery;
         if (!lottery) {
           lottery = { records: [], history: [], prizes: [], enabled: true };
@@ -922,7 +926,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
           };
         }
         
-        fs.writeFileSync(CONTENT_FILE, JSON.stringify(contentData, null, 2), 'utf-8');
+        setContent('_full', contentData);
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: '参与成功，等待开奖' }));
@@ -937,7 +941,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
 // API: 手动开奖 (POST)
   if (req.method === 'POST' && req.url === '/api/lottery/draw') {
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       const lottery = contentData.lottery;
       
       if (!lottery || !lottery.records || lottery.records.length === 0) {
@@ -1022,7 +1026,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
       lottery.records = [];
       lottery.drawn = true;
       
-      fs.writeFileSync(CONTENT_FILE, JSON.stringify(contentData, null, 2), 'utf-8');
+      setContent('_full', contentData);
       
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, winners: winners.length }));
@@ -1040,7 +1044,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+        const contentData = getContent('_full');
         const lottery = contentData.lottery || { prizes: [], records: [], history: [] };
         lottery.enabled = data.enabled !== undefined ? data.enabled : true;
         lottery.name = data.name || '';
@@ -1057,7 +1061,7 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
         ];
         if (data.prizes) { console.log('保存的奖品数据:', JSON.stringify(data.prizes)); lottery.prizes = data.prizes; }
         contentData.lottery = lottery;
-        fs.writeFileSync(CONTENT_FILE, JSON.stringify(contentData, null, 2), 'utf-8');
+        setContent('_full', contentData);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -1072,14 +1076,14 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   if (req.method === 'DELETE' && req.url.startsWith('/api/lottery/record/')) {
     const index = parseInt(req.url.split('/api/lottery/record/')[1]);
     try {
-      const contentData = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf-8'));
+      const contentData = getContent('_full');
       if (!contentData.lottery || !contentData.lottery.records) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, error: '无记录' }));
         return;
       }
       contentData.lottery.records.splice(index, 1);
-      fs.writeFileSync(CONTENT_FILE, JSON.stringify(contentData, null, 2), 'utf-8');
+      setContent('_full', contentData);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true }));
     } catch (e) {
