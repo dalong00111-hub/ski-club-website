@@ -12,9 +12,9 @@ const { db, getContent, setContent, getUsers, setUser, getUser } = require('./db
 let users = {};
 
 // 加载用户数据 → 从SQLite
-function loadUsers() {
+async function loadUsers() {
   try {
-    users = getUsers();
+    users = await getUsers();
   } catch (e) { console.log('加载用户数据失败:', e.message); }
 }
 
@@ -28,14 +28,16 @@ function saveUsers() {
 }
 
 // 初始化加载
-loadUsers();
-// 超级管理员账号 - 只在用户不存在时创建
-if (!users['18003411633']) {
-  users['18003411633'] = { name: '18003411633', password: 'ZWL6020359', avatar: '👤', isSuperAdmin: true, createdAt: new Date().toISOString() };
-} else {
-  // 确保超级管理员标志存在
-  users['18003411633'].isSuperAdmin = true;
-}
+loadUsers().then(() => {
+  // 超级管理员账号 - 只在用户不存在时创建
+  if (!users['18003411633']) {
+    users['18003411633'] = { name: '18003411633', password: 'ZWL6020359', avatar: '👤', isSuperAdmin: true, role: 'superadmin', createdAt: new Date().toISOString() };
+  } else {
+    // 确保超级管理员标志存在
+    users['18003411633'].isSuperAdmin = true;
+    users['18003411633'].role = 'superadmin';
+  }
+});
 const smsCodes = {};
 const qrSessions = {};
 
@@ -158,12 +160,12 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && (req.url.split('?')[0] === '/data/content.json' || req.url.split('?')[0] === '/api/save-content')) {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         JSON.parse(body);
         // 写入SQLite
         const fullContent = JSON.parse(body);
-        setContent('_full', fullContent);
+        await setContent('_full', fullContent);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
         console.log('✅ 内容已保存', new Date().toLocaleTimeString());
@@ -177,14 +179,17 @@ const server = http.createServer((req, res) => {
 
   // API: 读取内容 (GET)
   if (req.method === 'GET' && req.url === '/api/content') {
-    try {
-      const content = getContent('_full') || {};
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(content));
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
-    }
+    (async () => {
+      try {
+        const content = await getContent('_full');
+        const parsed = content ? JSON.parse(content) : {};
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(parsed));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    })();
     return;
   }
 
@@ -492,13 +497,38 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try {
-        const { phone, newPhone, name, avatar, password, role, permissions } = JSON.parse(body);
+        const data = JSON.parse(body);
+        const { phone, newPhone, name, avatar, password, role, permissions, gender, id_card, age, height, weight, school, grade } = data;
         if (!phone) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: '请提供手机号' }));
           return;
         }
         if (users[phone]) {
+          // Auto-calculate gender and age from id_card
+          if (id_card !== undefined && id_card.length >= 18) {
+            // Gender: 17th digit (index 16) - odd=男, even=女
+            const genderDigit = parseInt(id_card.charAt(16));
+            users[phone].gender = genderDigit % 2 === 1 ? '男' : '女';
+            // Age: calculate from birthdate (digits 6-13, format YYYYMMDD)
+            const birthdateStr = id_card.substring(6, 14);
+            if (birthdateStr.length === 8) {
+              const birthYear = parseInt(birthdateStr.substring(0, 4));
+              const birthMonth = parseInt(birthdateStr.substring(4, 6));
+              const birthDay = parseInt(birthdateStr.substring(6, 8));
+              const today = new Date();
+              let calcAge = today.getFullYear() - birthYear;
+              const monthDiff = today.getMonth() + 1 - birthMonth;
+              const dayDiff = today.getDate() - birthDay;
+              if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+                calcAge--;
+              }
+              users[phone].age = calcAge > 0 ? calcAge : '';
+            }
+          } else if (gender !== undefined) {
+            users[phone].gender = gender;
+          }
+          if (age !== undefined) users[phone].age = age;
           // Handle phone number change (phone is the key)
         if (newPhone && newPhone !== phone) {
           if (users[newPhone]) {
@@ -507,7 +537,7 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
             return;
           }
           // Create new entry with new phone
-          users[newPhone] = { ...users[phone], name: name || users[phone].name, avatar: avatar || users[phone].avatar, password: password || users[phone].password, role: role || users[phone].role, permissions: permissions || users[phone].permissions };
+          users[newPhone] = { ...users[phone], name: name || users[phone].name, avatar: avatar || users[phone].avatar, password: password || users[phone].password, role: role || users[phone].role, permissions: permissions || users[phone].permissions, gender: users[phone].gender, id_card: id_card || users[phone].id_card, age: users[phone].age, height: height || users[phone].height, weight: weight || users[phone].weight, school: school || users[phone].school, grade: grade || users[phone].grade };
           if (name) users[newPhone].name = name;
           if (avatar) users[newPhone].avatar = avatar;
           if (password) users[newPhone].password = password;
@@ -520,14 +550,19 @@ if (req.method === 'POST' && req.url.split('?')[0] === '/api/update-profile') {
           return;
         }
         
-        if (name) users[phone].name = name;
-        if (avatar) users[phone].avatar = avatar;
-        if (password) users[phone].password = password;
-        if (role) users[phone].role = role;
-        if (permissions) users[phone].permissions = permissions;
+        if (name !== undefined) users[phone].name = name;
+        if (avatar !== undefined) users[phone].avatar = avatar;
+        if (password !== undefined) users[phone].password = password;
+        if (role !== undefined) users[phone].role = role;
+        if (permissions !== undefined) users[phone].permissions = permissions;
+        if (id_card !== undefined) users[phone].id_card = id_card;
+        if (height !== undefined) users[phone].height = height;
+        if (weight !== undefined) users[phone].weight = weight;
+        if (school !== undefined) users[phone].school = school;
+        if (grade !== undefined) users[phone].grade = grade;
         saveUsers();
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, user: { name: users[phone].name, avatar: users[phone].avatar, phone: phone, role: users[phone].role || 'user', permissions: users[phone].permissions || {}, isSuperAdmin: users[phone].role === 'superadmin' } }));
+          res.end(JSON.stringify({ success: true, user: { name: users[phone].name, avatar: users[phone].avatar, phone: phone, role: users[phone].role || 'user', permissions: users[phone].permissions || {}, isSuperAdmin: users[phone].role === 'superadmin', gender: users[phone].gender, id_card: users[phone].id_card, age: users[phone].age, height: users[phone].height, weight: users[phone].weight, school: users[phone].school, grade: users[phone].grade } }));
         } else {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: '用户不存在' }));
@@ -802,8 +837,9 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   if (req.method === 'GET' && req.url.startsWith('/api/user/')) {
     let phone = req.url.replace('/api/user/', '').split('?')[0];
     if (phone && users[phone]) {
+      const u = users[phone];
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, user: { name: users[phone].name, avatar: users[phone].avatar, phone: phone, role: users[phone].role || 'user', permissions: users[phone].permissions || {}, isSuperAdmin: users[phone].role === 'superadmin' } }));
+      res.end(JSON.stringify({ success: true, user: { name: u.name, avatar: u.avatar, phone: phone, role: u.role || 'user', permissions: u.permissions || {}, isSuperAdmin: u.role === 'superadmin', gender: u.gender, id_card: u.id_card, height: u.height, weight: u.weight, school: u.school, grade: u.grade } }));
     } else {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: '用户不存在' }));
@@ -815,6 +851,263 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   if (req.method === 'GET' && req.url === '/api/users') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, users: users }));
+    return;
+  }
+
+  // API: 获取档案字段列表 (GET)
+  if (req.method === 'GET' && req.url === '/api/profile-fields') {
+    (async () => {
+      try {
+        const fields = await db.getProfileFields();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, fields: fields }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    })();
+    return;
+  }
+
+  // API: 保存档案字段 (POST)
+  if (req.method === 'POST' && req.url === '/api/profile-fields') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const field = JSON.parse(body);
+        if (!field.id || !field.field_label) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '字段ID和名称不能为空' }));
+          return;
+        }
+        await db.setProfileField(field);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // API: 删除档案字段 (DELETE)
+  if (req.method === 'DELETE' && req.url.startsWith('/api/profile-fields/')) {
+    const id = req.url.replace('/api/profile-fields/', '');
+    (async () => {
+      try {
+        await db.deleteProfileField(id);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    })();
+    return;
+  }
+
+  // API: 获取家庭成员档案 (GET)
+  if (req.method === 'GET' && req.url === '/api/family-profiles') {
+    (async () => {
+      try {
+        const phone = parsedUrl.query.phone;
+        if (!phone) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '缺少用户手机号' }));
+          return;
+        }
+        const profiles = await db.getFamilyProfiles(phone);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, profiles }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    })();
+    return;
+  }
+
+  // API: 添加家庭成员档案 (POST)
+  if (req.method === 'POST' && req.url === '/api/family-profiles') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        (async () => {
+          const result = await db.addFamilyProfile(data);
+          if (result.success) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result));
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result));
+          }
+        })();
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // API: 获取档案修改请求列表 (GET)
+  if (req.method === 'GET' && req.url === '/api/profile-requests') {
+    (async () => {
+      try {
+        const status = parsedUrl.query.status;
+        const requests = await db.getProfileRequests(status);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, requests }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    })();
+    return;
+  }
+
+  // API: 提交档案修改请求 (POST)
+  if (req.method === 'POST' && req.url === '/api/profile-requests') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        (async () => {
+          const result = await db.addProfileRequest(data);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        })();
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // API: 处理档案请求 (POST)
+  if (req.method === 'POST' && req.url.startsWith('/api/profile-requests/')) {
+    const requestId = req.url.replace('/api/profile-requests/', '');
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        (async () => {
+          const result = await db.processProfileRequest(requestId, data);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(result));
+        })();
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // API: 获取用户已有档案数量 (GET)
+  if (req.method === 'GET' && req.url.startsWith('/api/family-profiles/count')) {
+    (async () => {
+      try {
+        const phone = parsedUrl.query.phone;
+        const count = await db.getFamilyProfileCount(phone);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, count }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    })();
+    return;
+  }
+
+  // API: 获取4个家庭成员槽位 (GET)
+  if (req.method === 'GET' && req.url.startsWith('/api/family-slots')) {
+    (async () => {
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const phone = urlObj.searchParams.get('phone');
+        if (!phone) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '缺少用户手机号' }));
+          return;
+        }
+        const profiles = await db.getFamilyProfiles(phone);
+        const slots = [null, null, null, null];
+        for (const p of profiles) {
+          const s = p.slot || 0;
+          if (s >= 0 && s < 4) slots[s] = p;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, slots }));
+      } catch(e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: e.message }));
+      }
+    })();
+    return;
+  }
+
+  // API: 保存槽位档案 (POST)
+  if (req.method === 'POST' && req.url === '/api/family-slot-save') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      (async () => {
+        try {
+          const data = JSON.parse(body);
+          const { user_phone, slot, role_name, name, phone, id_card, gender, age, height, weight, school, grade } = data;
+          if (!user_phone || slot === undefined) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '缺少参数' }));
+            return;
+          }
+          const existing = await db.getFamilyProfileBySlot(user_phone, slot);
+          if (existing) {
+            await db.updateFamilyProfileSlot(existing.id, { name, phone, id_card, gender, age, height, weight, school, grade, role_name });
+          } else {
+            await db.addFamilyProfile({ user_phone, slot, role_name, name, phone, id_card, gender, age, height, weight, school, grade });
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch(e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      })();
+    });
+    return;
+  }
+
+  // API: 清空槽位 (POST)
+  if (req.method === 'POST' && req.url === '/api/family-slot-clear') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      (async () => {
+        try {
+          const data = JSON.parse(body);
+          const { user_phone, slot } = data;
+          if (!user_phone || slot === undefined) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '缺少参数' }));
+            return;
+          }
+          await db.deleteFamilyProfileBySlot(user_phone, slot);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch(e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      })();
+    });
     return;
   }
 
@@ -1224,6 +1517,573 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
     return;
   }
 
+  // ========== 文件上传 API ==========
+
+// API: 上传课程封面图片
+if (req.method === 'POST' && req.url === '/api/upload/cover') {
+  const chunks = [];
+  req.on('data', chunk => chunks.push(chunk));
+  req.on('end', () => {
+    const buffer = Buffer.concat(chunks);
+    const boundary = req.headers['content-type']?.split('boundary=')[1];
+    if (!boundary) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'No boundary' }));
+      return;
+    }
+    
+    const parts = buffer.toString('binary').split('--' + boundary);
+    for (const part of parts) {
+      if (part.includes('filename=')) {
+        const match = part.match(/filename="(.+)"/);
+        const filename = match ? match[1] : 'cover_' + Date.now() + '.jpg';
+        const ext = filename.split('.').pop() || 'jpg';
+        const newFilename = 'cover_' + Date.now() + '.' + ext;
+        const filepath = path.join(__dirname, 'uploads', newFilename);
+        
+        const contentMatch = part.split('\r\n\r\n');
+        if (contentMatch.length > 1) {
+          const content = contentMatch[contentMatch.length - 1];
+          const cleanContent = content.slice(0, -2); // Remove trailing \r\n
+          require('fs').writeFileSync(filepath, Buffer.from(cleanContent, 'binary'));
+          const url = '/uploads/' + newFilename;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, url }));
+          return;
+        }
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: false, error: 'No file found' }));
+  });
+  return;
+}
+
+// ========== 约课系统 API ==========
+
+  // API: 获取约课分类和子分类 (GET)
+  if (req.method === 'GET' && req.url === '/api/booking/categories') {
+    db.getBookingCategories().then(categories => {
+      db.getBookingSubcategories().then(subcategories => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, categories, subcategories }));
+      });
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
+  // API: 获取课程列表 (GET) - 可按子分类筛选
+  if (req.method === 'GET' && req.url.startsWith('/api/booking/courses')) {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const subcategoryId = url.searchParams.get('subcategory_id') || null;
+    const categoryId = url.searchParams.get('category_id') || null;
+    const status = url.searchParams.get('status') || 'active'; // 默认只显示active
+    db.getBookingCourses(subcategoryId, true, categoryId, status).then(courses => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, courses }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
+  // API: 获取所有课程(含停止) (GET) - 后台管理用
+  if (req.method === 'GET' && req.url.startsWith('/api/booking/admin/courses')) {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const status = url.searchParams.get('status');
+    db.getBookingCourses(null, null, null, status).then(courses => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, courses }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
+  // API: 获取单个课程详情 (GET)
+  if (req.method === 'GET' && req.url.startsWith('/api/booking/course/')) {
+    const id = req.url.replace('/api/booking/course/', '').split('?')[0];
+    db.getBookingCourse(id).then(course => {
+      if (!course) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: '课程不存在' }));
+        return;
+      }
+      db.getBookingFormFields(id).then((fields) => {
+        // 不再自动创建默认字段 - 如果数据库中没有字段，就返回空
+        // 默认字段应该在创建课程时就已经保存到数据库
+        
+        // Fix: parse option_prices and condition if they're strings (double-encoded from storage)
+        fields = fields.map(field => {
+          if (field.option_prices && typeof field.option_prices === 'string') {
+            try {
+              let val = JSON.parse(field.option_prices);
+              // If still a string, parse again (double encoding)
+              if (typeof val === 'string') val = JSON.parse(val);
+              field.option_prices = val;
+            } catch(e) { /* ignore */ }
+          }
+          if (field.condition && typeof field.condition === 'string') {
+            try {
+              let val = JSON.parse(field.condition);
+              if (typeof val === 'string') val = JSON.parse(val);
+              field.condition = val;
+            } catch(e) { /* ignore */ }
+          }
+          return field;
+        });
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, course, fields }));
+      });
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
+  // API: 创建/更新课程 (POST)
+  if (req.method === 'POST' && req.url === '/api/booking/course') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const course = JSON.parse(body);
+        if (!course.id) course.id = 'course_' + Date.now();
+        if (!course.name) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '课程名称不能为空' }));
+          return;
+        }
+        // Provide default subcategory_id if not set
+        if (!course.subcategory_id) {
+          course.subcategory_id = 'sub_changxun'; // default
+        }
+        
+        // Check if course already exists before saving
+        db.getBookingCourse(course.id).then(existingCourse => {
+          db.setBookingCourse(course).then(() => {
+            // Only create default fields for NEW courses
+            if (!existingCourse) {
+              const defaultFields = [
+                { field_name: 'student_name', field_label: '姓名', field_type: 'text', required: true, price: 0 },
+                { field_name: 'phone', field_label: '联系电话', field_type: 'text', required: false, price: 0 },
+                { field_name: 'booking_date', field_label: '预约日期', field_type: 'date', required: true, price: 0 }
+              ];
+              Promise.all(defaultFields.map(f => {
+                f.id = 'field_' + course.id + '_' + f.field_name;
+                f.course_id = course.id;
+                f.options = null;
+                f.option_prices = null;
+                f.sort_order = defaultFields.indexOf(f);
+                return db.setBookingFormField(f);
+              })).then(() => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, courseId: course.id }));
+              }).catch(err => {
+                console.error('Set field error:', err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: '保存字段失败: ' + err.message }));
+              });
+            } else {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, courseId: course.id }));
+            }
+          }).catch(err => {
+            console.error('Set course error:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '保存课程失败: ' + err.message }));
+          });
+        });
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: '保存失败' }));
+      }
+    });
+    return;
+  }
+
+  // API: 添加/更新课程表单字段 (POST)
+  if (req.method === 'POST' && req.url === '/api/booking/field') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const field = JSON.parse(body);
+        if (!field.id) field.id = 'field_' + Date.now();
+        if (!field.field_label) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '字段名称不能为空' }));
+          return;
+        }
+        db.setBookingFormField(field).then(() => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, fieldId: field.id }));
+        }).catch(err => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '保存失败' }));
+        });
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: '保存失败' }));
+      }
+    });
+    return;
+  }
+
+  // API: 删除课程表单字段 (DELETE)
+  if (req.method === 'DELETE' && req.url.startsWith('/api/booking/field/')) {
+    const fieldId = req.url.replace('/api/booking/field/', '');
+    db.deleteBookingFormField(fieldId).then(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
+  // API: 删除课程 (DELETE)
+  if (req.method === 'DELETE' && req.url.startsWith('/api/booking/course/')) {
+    const courseId = req.url.replace('/api/booking/course/', '');
+    db.deleteBookingCourse(courseId).then(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
+  // API: 更新课程状态 (PUT) - 启动/停止课程
+  if (req.method === 'PUT' && req.url.startsWith('/api/booking/course/')) {
+    const courseId = req.url.replace('/api/booking/course/', '').split('?')[0];
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        await db.updateBookingCourse(courseId, { status: data.status });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch(err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // API: 提交约课 (POST)
+  if (req.method === 'POST' && req.url === '/api/booking/submit') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const formData = data.form_data || {};
+        
+        // Validate required fields from form configuration
+        // The required check is done on frontend via HTML5 required attribute
+        // But we also check here as a fallback
+        db.getBookingCourse(data.course_id).then(course => {
+          if (!course) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '课程不存在' }));
+            return;
+          }
+          
+          // Get field configuration to check required fields
+          db.getBookingFormFields(data.course_id).then(fields => {
+            // Check required fields from form configuration
+            // Skip validation for fields with conditions (they may be hidden)
+            // Frontend generates element id as 'field_' + field.id
+            for (const field of fields) {
+              if (field.required && !field.condition) {
+                // Check both 'field_' + id and field_name formats
+                const frontendId = 'field_' + field.id;
+                const fieldValue = formData[frontendId] || formData[field.id] || formData[field.field_name];
+                if (!fieldValue || !fieldValue.trim()) {
+                  res.writeHead(200, { 'Content-Type': 'application/json' });
+                  res.end(JSON.stringify({ success: false, error: `请填写${field.field_label}` }));
+                  return;
+                }
+              }
+            }
+            
+            // Extract student_name, phone, booking_date
+            // Frontend generates element id as 'field_' + field.id
+            let student_name = '';
+            let phone = '';
+            let booking_date = '';
+            for (const field of fields) {
+              const fieldIdWithPrefix = 'field_' + field.id;
+              if (field.field_name === 'student_name') {
+                student_name = formData[fieldIdWithPrefix] || formData[field.id] || '';
+              }
+              if (field.field_name === 'phone') {
+                phone = formData[fieldIdWithPrefix] || formData[field.id] || '';
+              }
+              if (field.field_name === 'booking_date') {
+                booking_date = formData[fieldIdWithPrefix] || formData[field.id] || '';
+              }
+            }
+            
+            const record = {
+              id: 'booking_' + Date.now(),
+              course_id: data.course_id,
+              course_name: course.name,
+              subcategory_name: data.subcategory_name || '',
+              category_name: data.category_name || '',
+              student_name: student_name,
+              phone: phone,
+              booking_date: booking_date || course.start_date || '',
+              course_start_date: course.start_date || '',
+              course_end_date: course.end_date || '',
+              form_data: formData,
+              total_price: data.total_price || course.price || 0,
+              status: 'confirmed'
+            };
+            
+            // Check duplicate
+            db.getBookingRecords({ student_name: student_name, course_id: data.course_id, booking_date: booking_date, limit: 5 }).then(existing => {
+              const duplicate = existing.find(r => r.student_name === student_name && r.course_id === data.course_id && r.booking_date === booking_date);
+              if (duplicate) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: '该学员本周已预约此课程，请勿重复提交' }));
+                return;
+              }
+              db.createBookingRecord(record).then(() => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, recordId: record.id }));
+              }).catch(err => {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: '提交失败' }));
+              });
+            });
+          }).catch(err => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '提交失败' }));
+          });
+        }).catch(err => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '提交失败' }));
+        });
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: '提交失败' }));
+      }
+    });
+    return;
+  }
+
+  // API: 获取约课记录 (GET) - 后台管理
+  if (req.method === 'GET' && req.url.startsWith('/api/booking/records')) {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const filters = {
+      course_id: url.searchParams.get('course_id') || null,
+      booking_date: url.searchParams.get('booking_date') || null,
+      start_date: url.searchParams.get('start_date') || null,
+      end_date: url.searchParams.get('end_date') || null,
+      student_name: url.searchParams.get('student_name') || null,
+      phone: url.searchParams.get('phone') || null,
+      limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')) : 100
+    };
+    db.getBookingRecords(filters).then(records => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, records }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+  
+  // API: 更新我的约课 (PUT) - 用户只能修改自己的未开始课程
+  if (req.method === 'PUT' && req.url.startsWith('/api/booking/my/')) {
+    const id = req.url.split('/api/booking/my/')[1];
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const data = JSON.parse(body);
+      // Check if booking exists
+      db.getBookingRecord(id).then(record => {
+        if (!record) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '预约记录不存在' }));
+          return;
+        }
+        // Check if booking date is in the past - only allow cancel for future bookings
+        if (record.booking_date) {
+          const bookingDate = new Date(record.booking_date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (bookingDate < today) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '课程已开始，无法取消' }));
+            return;
+          }
+        }
+        // Handle cancel
+        if (data.status === 'cancelled') {
+          db.updateBookingRecord(id, { status: 'cancelled' }).then(() => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+          }).catch(err => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          });
+          return;
+        }
+        // Update form_data or booking_date - only for future bookings
+        const updateData = {};
+        if (data.form_data) updateData.form_data = data.form_data;
+        if (data.booking_date) updateData.booking_date = data.booking_date;
+        if (Object.keys(updateData).length > 0) {
+          db.updateBookingRecord(id, updateData).then(() => {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+          }).catch(err => {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+          });
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        }
+      });
+    });
+    return;
+  }
+  
+  // PUT /api/booking/record/:id - Update booking record (superadmin only)
+  if (req.method === 'PUT' && req.url.startsWith('/api/booking/record/')) {
+    const id = req.url.split('/api/booking/record/')[1];
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const data = JSON.parse(body);
+      db.updateBookingRecord(id, data).then(result => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      }).catch(err => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      });
+    });
+    return;
+  }
+  
+  // DELETE /api/booking/record/:id - Delete booking record (superadmin only)
+  if (req.method === 'DELETE' && req.url.startsWith('/api/booking/record/')) {
+    const id = req.url.split('/api/booking/record/')[1];
+    db.deleteBookingRecord(id).then(result => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+  
+  // GET /api/booking/export - Export records to XLSX
+  if (req.method === 'GET' && req.url.startsWith('/api/booking/export')) {
+    const url = new URL(req.url, `http://localhost:${PORT}`);
+    const filters = {
+      course_id: url.searchParams.get('course_id') || null,
+      booking_date: url.searchParams.get('booking_date') || null,
+      start_date: url.searchParams.get('start_date') || null,
+      end_date: url.searchParams.get('end_date') || null,
+      student_name: url.searchParams.get('student_name') || null,
+      limit: 10000
+    };
+    
+    db.getBookingRecords(filters).then(async records => {
+      const XLSX = require('xlsx');
+      
+      // Get field configuration for all courses to build headers
+      const courses = await db.getBookingCourses();
+      const allFieldLabels = new Set(['学员姓名', '联系电话', '课程', '分类', '预约日期', '总费用', '状态', '报名时间']);
+      
+      // Parse form_data and collect all field labels
+      const parsedRecords = records.map(r => {
+        let formData = r.form_data;
+        if (typeof formData === 'string') {
+          try { formData = JSON.parse(formData); } catch(e) { formData = {}; }
+        }
+        // Collect labels
+        for (const [key, value] of Object.entries(formData)) {
+          if (value && typeof value === 'object' && value.label) {
+            allFieldLabels.add(value.label);
+          }
+        }
+        return { ...r, _formData: formData };
+      });
+      
+      // Prepare data
+      const exportData = parsedRecords.map(r => {
+        const row = {
+          '学员姓名': r.student_name || '',
+          '联系电话': r.phone || '',
+          '课程': r.course_name || '',
+          '分类': r.category_name || '',
+          '预约日期': r.booking_date || '',
+          '总费用': r.total_price || 0,
+          '状态': r.status === 'pending' ? '待确认' : r.status,
+          '报名时间': new Date(r.created_at).toLocaleString('zh-CN')
+        };
+        
+        // Add all form fields
+        for (const label of allFieldLabels) {
+          if (label === '学员姓名') continue;
+          let found = false;
+          const formData = r._formData || {};
+          for (const [key, value] of Object.entries(formData)) {
+            if (value && typeof value === 'object' && value.label === label) {
+              row[label] = value.value || '';
+              found = true;
+              break;
+            }
+          }
+          if (!found) row[label] = '';
+        }
+        
+        return row;
+      });
+      
+      // Create workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, '预约记录');
+      
+      // Set column widths
+      const headers = Array.from(allFieldLabels);
+      worksheet['!cols'] = headers.map(() => ({ wch: 15 }));
+      
+      // Generate buffer
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename=booking_records.xlsx'
+      });
+      res.end(buffer);
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+    return;
+  }
+
   if (req.method === 'GET') {
     let filePath = req.url === '/' ? '/index.html' : req.url;
     filePath = path.join(__dirname, filePath);
@@ -1249,6 +2109,15 @@ if (req.method === 'POST' && req.url === '/api/qr-confirm') {
   res.end();
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`🏂 网站已启动: http://localhost:${PORT}/`);
+  // Auto-expire courses that have passed their end date
+  try {
+    const expired = await db.autoExpireCourses();
+    if (expired > 0) {
+      console.log(`⏰ 自动停用了 ${expired} 个已过期的课程`);
+    }
+  } catch(e) {
+    console.log('Auto-expire check failed:', e.message);
+  }
 });

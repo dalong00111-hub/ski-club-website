@@ -3,7 +3,7 @@
  */
 
 // API配置 - 修改这里的地址连接你的后端
-const API_BASE = 'https://1255313519-84i7l0se8i.ap-beijing.tencentscf.com';
+const API_BASE = ''; // 本地开发用空字符串(相对路径)，生产环境填云函数地址
 
 class SkiClubWebsite {
   constructor() {
@@ -284,7 +284,8 @@ class SkiClubWebsite {
     
     // Render other menu items
     var menuHtml = otherItems.map(function(item) {
-      return `<a href="${item.link}" class="menu-item">
+      var highlightClass = item.highlight ? ' menu-item-highlight' : '';
+      return `<a href="${item.link}" class="menu-item${highlightClass}">
         <span class="menu-icon">${item.icon}</span>
         <span class="menu-title">${item.title}</span>
       </a>`;

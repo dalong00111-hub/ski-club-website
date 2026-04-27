@@ -891,7 +891,24 @@ img {
   opacity: 1;
 }
 
-.menu-item:hover /* 抽奖横幅 */
+.menu-item-highlight {
+  background: linear-gradient(135deg, rgba(201, 169, 98, 0.2) 0%, rgba(201, 169, 98, 0.05) 100%) !important;
+  border: 2px solid #C9A962 !important;
+  box-shadow: 0 0 30px rgba(201, 169, 98, 0.3);
+}
+
+.menu-item-highlight::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 40px 40px 0;
+  border-color: transparent #C9A962 transparent transparent;
+}
+
 .menu-lottery-banner {
   display: flex;
   align-items: center;
@@ -1347,6 +1364,15 @@ img {
 .list-item-actions {
   display: flex;
   gap: 8px;
+}
+
+.list-item.drag-over {
+  background: rgba(0, 57, 166, 0.1);
+  border: 2px dashed #0039A6;
+}
+
+.list-item[draggable="true"] {
+  cursor: move;
 }
 
 /* Toast Notification */

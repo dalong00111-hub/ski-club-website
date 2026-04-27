@@ -397,7 +397,7 @@
 
       async init() {
         try {
-          const res = await fetch('data/content.json');
+          const res = await fetch('/api/content');
           this.content = await res.json();
           if (this.content.quiz) {
             this.questions = this.content.quiz.questions;

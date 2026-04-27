@@ -82,7 +82,7 @@
     // 课程页面数据加载
     async function loadCourses() {
       try {
-        const response = await fetch('data/content.json');
+        const response = await fetch('/api/content');
         const data = await response.json();
         
         // 渲染页面内容

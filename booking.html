@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>约课 - 龙城滑雪俱乐部</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background: var(--gradient-hero); min-height: 100vh; }
+    .booking-container { max-width: 1280px; margin: 0 auto; padding: 120px 40px 60px; }
+    
+    /* Page Title */
+    .page-title { text-align: center; margin-bottom: 60px; }
+    .page-title h1 { font-size: 3rem; color: white; margin-bottom: 16px; text-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .page-title p { font-size: 1.2rem; color: var(--gold-light); }
+    
+    /* Category Grid - Only 2 categories */
+    .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; max-width: 900px; margin: 0 auto 60px; }
+    .category-card { 
+      background: linear-gradient(135deg, rgba(26, 79, 208, 0.6) 0%, rgba(13, 33, 55, 0.8) 100%);
+      border: 2px solid var(--gold);
+      border-radius: var(--radius-lg);
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+    .category-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+      opacity: 0;
+      transition: var(--transition-smooth);
+    }
+    .category-card:hover { 
+      transform: translateY(-10px);
+      box-shadow: var(--shadow-gold);
+      border-color: var(--gold-light);
+    }
+    .category-card:hover::before { opacity: 0.1; }
+    .category-card .icon { font-size: 5rem; margin-bottom: 20px; position: relative; z-index: 1; }
+    .category-card .name { font-size: 2rem; color: white; font-weight: 600; position: relative; z-index: 1; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    .category-card .desc { color: var(--ice-white); margin-top: 12px; font-size: 1rem; opacity: 0.8; position: relative; z-index: 1; }
+    
+    /* Course Grid */
+    .course-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
+    .course-card {
+      background: linear-gradient(135deg, rgba(13, 33, 55, 0.9) 0%, rgba(26, 79, 208, 0.4) 100%);
+      border: 1px solid rgba(201, 169, 98, 0.3);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition-smooth);
+      cursor: pointer;
+    }
+    .course-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-gold);
+      border-color: var(--gold);
+    }
+    .course-card .cover {
+      height: 180px;
+      background: linear-gradient(135deg, var(--primary-blue) 0%, var(--light-blue) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+    }
+    .course-card .info { padding: 24px; }
+    .course-card .name { font-size: 1.4rem; color: white; font-weight: 600; margin-bottom: 10px; }
+    .course-card .desc { color: var(--text-light); font-size: 0.95rem; margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .course-card .meta { display: flex; justify-content: space-between; align-items: center; }
+    .course-card .price { color: var(--gold); font-size: 1.5rem; font-weight: 600; }
+    .course-card .duration { color: var(--text-light); font-size: 0.9rem; }
+    
+    /* Back Button */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gold-light);
+      font-size: 1rem;
+      cursor: pointer;
+      margin-bottom: 30px;
+      transition: var(--transition-smooth);
+    }
+    .back-btn:hover { color: var(--gold); }
+    
+    /* Section Title */
+    .section-title { color: white; font-size: 2rem; margin-bottom: 30px; text-align: center; }
+    
+    /* Empty State */
+    .empty-state { text-align: center; padding: 80px 40px; background: rgba(13, 33, 55, 0.5); border-radius: var(--radius-lg); border: 1px solid rgba(201, 169, 98, 0.2); }
+    .empty-state .icon { font-size: 4rem; margin-bottom: 20px; }
+    .empty-state p { color: var(--text-light); font-size: 1.1rem; }
+    
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 22, 40, 0.9); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: linear-gradient(135deg, var(--primary-navy) 0%, var(--primary-deep) 100%);
+      border: 2px solid var(--gold);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 550px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 40px;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(201, 169, 98, 0.2);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+    }
+    .modal-close:hover { background: var(--gold); color: var(--primary-deep); }
+    .modal h2 { color: white; font-size: 1.8rem; margin-bottom: 8px; }
+    .modal .subtitle { color: var(--gold-light); font-size: 0.95rem; margin-bottom: 30px; }
+    
+    /* Form */
+    .form-group { margin-bottom: 24px; }
+    .form-group label { display: block; color: var(--ice-white); font-size: 0.95rem; margin-bottom: 8px; font-weight: 500; }
+    .form-group label .required { color: var(--gold); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(10, 22, 40, 0.8);
+      border: 1px solid rgba(201, 169, 98, 0.4);
+      border-radius: var(--radius-sm);
+      color: white;
+      font-size: 1rem;
+      transition: var(--transition-smooth);
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(201, 169, 98, 0.2);
+    }
+    .form-group input::placeholder, .form-group textarea::placeholder { color: var(--text-muted); }
+    .form-group select option { background: var(--primary-deep); color: white; }
+    .form-group .hint { font-size: 0.85rem; color: var(--gold); margin-top: 6px; }
+    
+    /* Fee Summary */
+    .fee-summary { background: rgba(201, 169, 98, 0.1); border: 1px solid rgba(201, 169, 98, 0.3); border-radius: var(--radius-md); padding: 20px; margin: 20px 0; }
+    .fee-summary .row { display: flex; justify-content: space-between; padding: 8px 0; color: var(--ice-white); font-size: 0.95rem; }
+    .fee-summary .row.extra { color: var(--gold-light); }
+    .fee-summary .total { border-top: 1px solid var(--gold); margin-top: 12px; padding-top: 12px; font-size: 1.3rem; font-weight: 600; color: var(--gold); }
+    
+    /* Buttons */
+    .btn { padding: 16px 32px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 1rem; font-weight: 600; transition: var(--transition-smooth); display: inline-block; }
+    .btn-primary { background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--primary-deep); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-gold); }
+    .btn-secondary { background: rgba(201, 169, 98, 0.2); border: 1px solid var(--gold); color: var(--gold); }
+    .btn-secondary:hover { background: var(--gold); color: var(--primary-deep); }
+    .btn-block { width: 100%; text-align: center; }
+    
+    /* Loading */
+    .loading { text-align: center; padding: 60px; color: var(--gold-light); font-size: 1.2rem; }
+    
+    /* Breadcrumb */
+    .breadcrumb { margin-bottom: 40px; }
+    .breadcrumb .step { color: var(--text-muted); font-size: 0.95rem; }
+    .breadcrumb .current { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">极运龙城×趣滑雪</div>
+      <ul class="nav-menu">
+        <li><a href="index.html">首页</a></li>
+        <li><a href="courses.html">了解课程</a></li>
+        <li><a href="booking.html" class="active">约课</a></li>
+        <li><a href="my.html">我的</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="booking-container">
+    <!-- Page Title -->
+    <div class="page-title">
+      <h1>🏂 课程预约</h1>
+      <p>选择适合你的训练课程</p>
+    </div>
+    
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" id="breadcrumb">
+      <span class="step">选择训练类型</span>
+    </div>
+    
+    <!-- Content Area -->
+    <div id="content">
+      <div class="loading">正在加载...</div>
+    </div>
+  </div>
+  
+  <!-- Booking Modal -->
+  <div class="modal" id="bookingModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">×</button>
+      <h2 id="modalCourseName">课程名称</h2>
+      <p class="subtitle" id="modalCategory"></p>
+      <p class="modal-dates" id="modalDates"></p>
+      
+      <form id="bookingForm">
+        <input type="hidden" id="course_id">
+        <input type="hidden" id="category_name">
+        
+        <div id="dynamicFields"></div>
+        
+        <div class="fee-summary">
+          <div class="row"><span>基础费用</span><span id="basePrice">¥0</span></div>
+          <div id="extraFees"></div>
+          <div class="row total"><span>合计</span><span id="totalPrice">¥0</span></div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">确认预约</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let categories = [];
+    let courses = [];
+    let currentCategory = null;
+    let currentCourse = null;
+    let courseFields = [];
+    
+    // Init
+    document.addEventListener('DOMContentLoaded', init);
+    
+    async function init() {
+      await loadCategories();
+      renderCategories();
+    }
+    
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/booking/categories');
+        const data = await res.json();
+        if (data.success) {
+          categories = data.categories;
+        }
+      } catch (e) {
+        console.error('加载失败', e);
+      }
+    }
+    
+    function renderCategories() {
+      const html = `
+        <div class="category-grid">
+          ${categories.map(cat => `
+            <div class="category-card" onclick="selectCategory('${cat.id}')">
+              <div class="icon">${cat.icon}</div>
+              <div class="name">${cat.name}</div>
+              <div class="desc">点击选择课程</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      document.getElementById('content').innerHTML = html;
+      document.getElementById('breadcrumb').innerHTML = '<span class="step">选择训练类型</span>';
+    }
+    
+    async function selectCategory(catId) {
+      currentCategory = categories.find(c => c.id === catId);
+      document.getElementById('content').innerHTML = '<div class="loading">正在加载课程...</div>';
+      document.getElementById('breadcrumb').innerHTML = `
+        <span class="step" style="cursor:pointer;" onclick="renderCategories()">选择训练类型</span>
+        <span class="step"> › </span>
+        <span class="current">${currentCategory.name}</span>
+      `;
+      
+      try {
+        const res = await fetch(`/api/booking/courses?category_id=${catId}`);
+        const data = await res.json();
+        if (data.success) {
+          courses = data.courses;
+          renderCourses();
+        }
+      } catch (e) {
+        document.getElementById('content').innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败，请重试</p></div>';
+      }
+    }
+    
+    function renderCourses() {
+      if (courses.length === 0) {
+        document.getElementById('content').innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📚</div>
+            <p>该分类下暂无课程</p>
+            <p style="margin-top:20px;"><button class="btn btn-secondary" onclick="renderCategories()">返回选择其他类型</button></p>
+          </div>
+        `;
+        return;
+      }
+      
+      const html = `
+        <h2 class="section-title">${currentCategory.icon} ${currentCategory.name}</h2>
+        <div class="course-grid">
+          ${courses.map(course => `
+            <div class="course-card" onclick="openBookingModal('${course.id}')">
+              <div class="cover">${course.cover_image ? '<img src="' + course.cover_image + '" style="width:100%;height:100%;object-fit:cover;">' : currentCategory.icon}</div>
+              <div class="info">
+                <div class="name">${course.name}</div>
+                <div class="desc">${course.description || '点击查看详情并预约'}</div>
+                ${course.start_date || course.end_date ? '<div class="dates" style="font-size:0.8rem;color:#666;margin:3px 0;">📅 ' + (course.start_date || '') + (course.end_date ? ' 至 ' + course.end_date : '') + '</div>' : ''}
+                <div class="meta">
+                  <span class="price">¥${course.price || 0}</span>
+                  <span class="duration">${course.duration || ''}</span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      document.getElementById('content').innerHTML = html;
+    }
+    
+    async function openBookingModal(courseId) {
+      try {
+        const res = await fetch(`/api/booking/course/${courseId}`);
+        const data = await res.json();
+        if (data.success) {
+          currentCourse = data.course;
+          courseFields = data.fields || [];
+          showModal();
+        } else {
+          alert(data.error || '加载失败');
+        }
+      } catch (e) {
+        alert('加载失败，请重试');
+      }
+    }
+    
+    function showModal() {
+      document.getElementById('modalCourseName').textContent = currentCourse.name;
+      document.getElementById('modalCategory').textContent = `${currentCategory.icon} ${currentCategory.name}`;
+      // Show course dates
+      const datesEl = document.getElementById('modalDates');
+      if (currentCourse.start_date || currentCourse.end_date) {
+        datesEl.textContent = '📅 ' + (currentCourse.start_date || '') + (currentCourse.end_date ? ' 至 ' + currentCourse.end_date : '');
+        datesEl.style.display = 'block';
+      } else {
+        datesEl.style.display = 'none';
+      }
+      document.getElementById('course_id').value = currentCourse.id;
+      document.getElementById('category_name').value = currentCategory.name;
+      document.getElementById('basePrice').textContent = `¥${currentCourse.price || 0}`;
+      
+      // Store field conditions for later use
+      window.fieldConditions = {};
+      window.fieldMap = {}; // id -> field
+      
+      // Render dynamic fields
+      let fieldsHtml = '';
+      courseFields.forEach(field => {
+        const condAttr = field.condition ? `data-condition="${field.condition}"` : '';
+        window.fieldConditions[field.id] = field.condition || null;
+        window.fieldMap[field.id] = field;
+        
+        if (field.field_type === 'select') {
+          // Parse option_prices from JSON string if needed
+          let optionPrices = field.option_prices;
+          if (typeof optionPrices === 'string') {
+            try { optionPrices = JSON.parse(optionPrices); } catch(e) { optionPrices = {}; }
+          }
+          const optionPricesAttr = optionPrices ? JSON.stringify(optionPrices).replace(/"/g, '&quot;') : '';
+          fieldsHtml += `
+            <div class="form-group field-wrapper" id="wrapper_${field.id}" ${condAttr}>
+              <label>${field.field_label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+              <select id="field_${field.id}" data-price="${field.price || 0}" data-multiplier="${field.multiplier || 1}" data-option-prices="${optionPricesAttr}" ${field.required ? 'required' : ''} onchange="onFieldChange('${field.id}')">
+                <option value="">请选择</option>
+                ${(field.options || '').split(',').map(opt => {
+                  let optPrice = 0;
+                  let optMultiplier = 1;
+                  if (optionPrices && optionPrices[opt]) {
+                    if (typeof optionPrices[opt] === 'object') {
+                      optPrice = optionPrices[opt].price || 0;
+                      optMultiplier = optionPrices[opt].multiplier || 1;
+                    } else {
+                      optPrice = optionPrices[opt];
+                    }
+                  }
+                  let optDisplay = opt;
+                  if (optPrice > 0 && optMultiplier !== 1) {
+                    optDisplay = opt + ' (+¥' + optPrice + ', ×' + optMultiplier + ')';
+                  } else if (optPrice > 0) {
+                    optDisplay = opt + ' (+¥' + optPrice + ')';
+                  } else if (optMultiplier !== 1) {
+                    optDisplay = opt + ' (×' + optMultiplier + ')';
+                  }
+                  return `<option value="${opt}" data-price="${optPrice}" data-multiplier="${optMultiplier}">${optDisplay}</option>`;
+                }).join('')}
+              </select>
+            </div>
+          `;
+        } else if (field.field_type === 'textarea') {
+          fieldsHtml += `
+            <div class="form-group field-wrapper" id="wrapper_${field.id}" ${condAttr}>
+              <label>${field.field_label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+              <textarea id="field_${field.id}" data-price="${field.price || 0}" data-multiplier="${field.multiplier || 1}" ${field.required ? 'required' : ''} rows="3" onchange="onFieldChange('${field.id}')"></textarea>
+            </div>
+          `;
+        } else {
+          const isDateField = field.field_type === 'date';
+          const todayAttr = isDateField ? ` min="${new Date().toISOString().split('T')[0]}"` : '';
+          const todayValue = isDateField ? ` value="${new Date().toISOString().split('T')[0]}"` : '';
+          fieldsHtml += `
+            <div class="form-group field-wrapper" id="wrapper_${field.id}" ${condAttr}>
+              <label>${field.field_label} ${field.required ? '<span class="required">*</span>' : ''}</label>
+              <input type="${field.field_type || 'text'}" id="field_${field.id}" data-price="${field.price || 0}" data-multiplier="${field.multiplier || 1}" ${field.required ? 'required' : ''}${todayAttr}${todayValue} onchange="onFieldChange('${field.id}')">
+              ${field.price > 0 ? `<div class="hint">+¥${field.price}</div>` : ''}
+            </div>
+          `;
+        }
+      });
+      document.getElementById('dynamicFields').innerHTML = fieldsHtml;
+      
+      // Initial condition check
+      checkAllConditions();
+      calculatePrice();
+      document.getElementById('bookingModal').classList.add('show');
+    }
+    
+    // Check and update field visibility based on conditions
+    function checkAllConditions() {
+      courseFields.forEach(field => {
+        if (field.condition) {
+          const visible = checkCondition(field.condition);
+          const wrapper = document.getElementById('wrapper_' + field.id);
+          if (wrapper) {
+            wrapper.style.display = visible ? 'block' : 'none';
+            // Reset required attribute when hidden
+            const input = document.getElementById('field_' + field.id);
+            if (input) {
+              if (!visible) {
+                input.removeAttribute('required');
+                input.value = '';
+              } else if (field.required) {
+                input.setAttribute('required', 'required');
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    function checkCondition(condition) {
+      if (!condition) return true;
+      
+      // New JSON format: {"conditions":[{"field":"field_id","values":["v1","v2"]}]}
+      // All conditions must be satisfied (AND logic)
+      try {
+        const condData = typeof condition === 'string' ? JSON.parse(condition) : condition;
+        if (condData.conditions && condData.conditions.length > 0) {
+          for (const cond of condData.conditions) {
+            const depInput = document.getElementById('field_' + cond.field);
+            if (!depInput) return true; // Field not found, show field
+            if (!cond.values.includes(depInput.value)) {
+              return false; // Condition not met
+            }
+          }
+          return true; // All conditions met
+        }
+      } catch(e) {
+        console.log('Parse condition error:', e);
+      }
+      return true;
+    }
+    
+    function onFieldChange(fieldId) {
+      checkAllConditions();
+      calculatePrice();
+    }
+    
+    function closeModal() {
+      document.getElementById('bookingModal').classList.remove('show');
+      document.getElementById('bookingForm').reset();
+    }
+    
+    function calculatePrice() {
+      let baseTotal = parseFloat(currentCourse.price) || 0;
+      let additiveTotal = 0;
+      let multiplierTotal = 1;
+      let extraHtml = '';
+      let additiveDetails = [];
+      let multiplierDetails = [];
+      
+      document.querySelectorAll('#dynamicFields select, #dynamicFields input, #dynamicFields textarea').forEach(el => {
+        // Skip hidden fields
+        const wrapper = el.closest('.field-wrapper');
+        if (wrapper && wrapper.style.display === 'none') return;
+        
+        let price = parseFloat(el.dataset.price) || 0;
+        let multiplier = parseFloat(el.dataset.multiplier) || 1;
+        
+        // For select fields, check if selected option has its own price and multiplier
+        if (el.tagName === 'SELECT') {
+          const selectedOption = el.options[el.selectedIndex];
+          if (selectedOption) {
+            if (selectedOption.dataset.price) {
+              price = parseFloat(selectedOption.dataset.price) || 0;
+            }
+            if (selectedOption.dataset.multiplier) {
+              multiplier = parseFloat(selectedOption.dataset.multiplier) || 1;
+            }
+          }
+        }
+        
+        if (el.value) {
+          const label = el.previousElementSibling?.textContent?.replace('*', '').trim() || '选项';
+          
+          // Add additive price
+          if (price > 0) {
+            additiveTotal += price;
+            additiveDetails.push({ label, value: el.value, price });
+          }
+          
+          // Add multiplier
+          if (multiplier !== 1) {
+            multiplierTotal *= multiplier;
+            multiplierDetails.push({ label, value: el.value, multiplier });
+          }
+        }
+      });
+      
+      // Calculate final total: (base + additives) * multipliers
+      const total = (baseTotal + additiveTotal) * multiplierTotal;
+      
+      // Build extra fees HTML
+      if (baseTotal > 0) {
+        extraHtml += `<div class="row extra"><span>基础费用</span><span>+¥${baseTotal}</span></div>`;
+      }
+      additiveDetails.forEach(d => {
+        extraHtml += `<div class="row extra"><span>${d.label}: ${d.value}</span><span>+¥${d.price}</span></div>`;
+      });
+      multiplierDetails.forEach(d => {
+        extraHtml += `<div class="row extra"><span>${d.label}: ${d.value}</span><span>×${d.multiplier}</span></div>`;
+      });
+      if (multiplierTotal !== 1) {
+        extraHtml += `<div class="row extra"><span>乘数合计</span><span>×${multiplierTotal}</span></div>`;
+      }
+      
+      document.getElementById('extraFees').innerHTML = extraHtml;
+      document.getElementById('basePrice').textContent = `¥${baseTotal}`;
+      document.getElementById('totalPrice').textContent = `¥${total}`;
+    }
+    
+    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = {};
+      document.querySelectorAll('#dynamicFields input, #dynamicFields select, #dynamicFields textarea').forEach(el => {
+        if (el.id) formData[el.id] = el.value;
+      });
+      
+      const total = parseFloat(document.getElementById('totalPrice').textContent.replace('¥', '')) || 0;
+      
+      const data = {
+        course_id: document.getElementById('course_id').value,
+        category_name: document.getElementById('category_name').value,
+        form_data: formData,
+        total_price: total
+      };
+      
+      try {
+        const res = await fetch('/api/booking/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert('预约成功！');
+          closeModal();
+          selectCategory(currentCategory.id);
+        } else {
+          alert(result.error || '预约失败');
+        }
+      } catch (e) {
+        alert('提交失败，请重试');
+      }
+    });
+    
+    // Close modal on outside click
+    document.getElementById('bookingModal').addEventListener('click', (e) => {
+      if (e.target.id === 'bookingModal') closeModal();
+    });
+  </script>
+</body>
+</html>

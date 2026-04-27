@@ -15,13 +15,13 @@ function adminLoginSuccess(user) {
 async function adminLogin() {
   var phone = document.getElementById('login-phone').value.trim();
   var password = document.getElementById('login-password').value;
-  
+
   if (!phone || !password) {
     document.getElementById('login-error').textContent = '请输入账号和密码';
     document.getElementById('login-error').style.display = 'block';
     return;
   }
-  
+
   try {
     var res = await fetch('/api/login', {
       method: 'POST',
@@ -29,7 +29,7 @@ async function adminLogin() {
       body: JSON.stringify({ phone: phone, password: password })
     });
     var data = await res.json();
-    
+
     if (data.success) {
       currentAdminUser = data.user;
       document.getElementById('login-modal').classList.remove('show');
@@ -42,7 +42,7 @@ async function adminLogin() {
       document.getElementById('login-error').style.display = 'block';
     }
   } catch (e) {
-    document.getElementById('login-error').textContent = '网络错误，请重试';
+    document.getElementById('login-error').textContent = '网络错误,请重试';
     document.getElementById('login-error').style.display = 'block';
   }
 }
@@ -83,19 +83,19 @@ class AdminPanel {
   }
 
   async loadContent() {
-    const response = await fetch('data/content.json');
+    const response = await fetch('/api/content');
     this.content = await response.json();
   }
 
   async saveContent() {
     try {
       // 使用fetch发送POST请求保存内容
-      const response = await fetch('data/content.json', {
+      const response = await fetch('/api/save-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(this.content, null, 2)
+        body: JSON.stringify(this.content)
       });
 
       if (!response.ok) {
@@ -106,21 +106,21 @@ class AdminPanel {
       return true;
     } catch (error) {
       console.error('保存失败:', error);
-      // 尝试使用download方式保存
-      this.downloadContent();
+      // 尝试使用backup方式保存
+      this.backupContent();
       return false;
     }
   }
-
-  downloadContent() {
+  
+  backupContent() {
     const blob = new Blob([JSON.stringify(this.content, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'content.json';
+    a.download = 'content_backup_' + Date.now() + '.json';
     a.click();
     URL.revokeObjectURL(url);
-    this.showToast('已生成下载，请手动替换 data/content.json 文件', 'success');
+    this.showToast('已生成下载,请手动替换 data/content.json 文件', 'success');
   }
 
   renderAll() {
@@ -140,9 +140,9 @@ class AdminPanel {
   renderHeaderForm() {
     const container = document.getElementById('header-form');
     if (!container) return;
-    
+
     const header = this.content.header || { logo: '', phone: '', wechat: '' };
-    
+
     container.innerHTML = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div class="form-group">
@@ -207,7 +207,7 @@ class AdminPanel {
     if (!container || !this.content.hero) return;
 
     const slides = this.content.hero.slides;
-    
+
     container.innerHTML = slides.map((slide, index) => `
       <div class="list-item" data-id="${slide.id}">
         <div class="list-item-image">
@@ -238,7 +238,7 @@ class AdminPanel {
       title: '新轮播图',
       description: '输入描述文字'
     };
-    
+
     this.content.hero.slides.push(newSlide);
     this.saveContent().then(() => this.renderHeroSlides());
   }
@@ -280,9 +280,19 @@ class AdminPanel {
     const file = input.files[0];
     const formData = new FormData();
     formData.append('image', file);
+    
+    // 即时预览本地图片
+    const previewArea = input.parentElement;
+    const existingPreview = previewArea.querySelector('.preview-img');
+    if (existingPreview) existingPreview.remove();
+    const localPreview = document.createElement('img');
+    localPreview.className = 'preview-img';
+    localPreview.style = 'width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:10px;';
+    localPreview.src = URL.createObjectURL(file);
+    previewArea.appendChild(localPreview);
 
     try {
-      const response = await fetch('api/upload.php', {
+      const response = await fetch('/upload', {
         method: 'POST',
         body: formData
       });
@@ -291,26 +301,25 @@ class AdminPanel {
         const data = await response.json();
         const slide = this.content.hero.slides.find(s => s.id === id);
         if (slide) {
-          slide.image = data.path;
+          slide.image = data.url || data.filename;
           await this.saveContent();
+          // 用服务器图片替换本地预览
+          localPreview.src = data.url || data.filename;
           this.showToast('上传成功', 'success');
-          this.closeModal();
-          this.editSlide(id);
         }
       } else {
         throw new Error('上传失败');
       }
     } catch (error) {
-      // 如果没有上传接口，直接保存base64
+      // 如果没有上传接口,直接保存base64
       const reader = new FileReader();
       reader.onload = async (e) => {
         const slide = this.content.hero.slides.find(s => s.id === id);
         if (slide) {
           slide.image = e.target.result;
           await this.saveContent();
-          this.showToast('图片已保存（作为Base64）', 'success');
-          this.closeModal();
-          this.editSlide(id);
+          localPreview.src = e.target.result;
+          this.showToast('图片已保存(作为Base64)', 'success');
         }
       };
       reader.readAsDataURL(file);
@@ -323,7 +332,7 @@ class AdminPanel {
 
     slide.title = document.getElementById('edit-slide-title').value;
     slide.description = document.getElementById('edit-slide-desc').value;
-    
+
     this.saveContent().then(() => {
       this.closeModal();
       this.renderHeroSlides();
@@ -331,8 +340,8 @@ class AdminPanel {
   }
 
   deleteSlide(id) {
-    if (!confirm('确定要删除这个轮播图吗？')) return;
-    
+    if (!confirm('确定要删除这个轮播图吗?')) return;
+
     this.content.hero.slides = this.content.hero.slides.filter(s => s.id !== id);
     this.saveContent().then(() => this.renderHeroSlides());
   }
@@ -373,16 +382,45 @@ class AdminPanel {
     if (!input.files || !input.files[0]) return;
 
     const file = input.files[0];
-    const reader = new FileReader();
+    const formData = new FormData();
+    formData.append('image', file);
     
-    reader.onload = (e) => {
-      this.content.founder.image = e.target.result;
-      this.saveContent();
-      this.showToast('照片已保存', 'success');
-      this.renderFounderForm();
-    };
-    
-    reader.readAsDataURL(file);
+    // 即时预览
+    const previewArea = input.parentElement;
+    const existingPreview = previewArea.querySelector('.preview-img');
+    if (existingPreview) existingPreview.remove();
+    const localPreview = document.createElement('img');
+    localPreview.className = 'preview-img';
+    localPreview.style = 'width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:10px;';
+    localPreview.src = URL.createObjectURL(file);
+    previewArea.appendChild(localPreview);
+
+    try {
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.content.founder.image = data.url || data.filename;
+        await this.saveContent();
+        localPreview.src = data.url || data.filename;
+        this.showToast('照片已上传', 'success');
+      } else {
+        throw new Error('上传失败');
+      }
+    } catch (error) {
+      // 备用: 保存base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.content.founder.image = e.target.result;
+        this.saveContent();
+        localPreview.src = e.target.result;
+        this.showToast('照片已保存(作为Base64)', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   saveFounder() {
@@ -426,7 +464,7 @@ class AdminPanel {
       image: '',
       description: '输入描述'
     };
-    
+
     this.content.bases.push(newBase);
     this.saveContent().then(() => this.renderBasesList());
   }
@@ -465,18 +503,51 @@ class AdminPanel {
     if (!input.files || !input.files[0]) return;
 
     const file = input.files[0];
-    const reader = new FileReader();
+    const formData = new FormData();
+    formData.append('image', file);
     
-    reader.onload = (e) => {
-      const base = this.content.bases.find(b => b.id === id);
-      if (base) {
-        base.image = e.target.result;
-        this.saveContent();
-        this.showToast('图片已上传', 'success');
+    // 即时预览
+    const previewArea = input.parentElement;
+    const existingPreview = previewArea.querySelector('.preview-img');
+    if (existingPreview) existingPreview.remove();
+    const localPreview = document.createElement('img');
+    localPreview.className = 'preview-img';
+    localPreview.style = 'width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:10px;';
+    localPreview.src = URL.createObjectURL(file);
+    previewArea.appendChild(localPreview);
+
+    try {
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const base = this.content.bases.find(b => b.id === id);
+        if (base) {
+          base.image = data.url || data.filename;
+          await this.saveContent();
+          localPreview.src = data.url || data.filename;
+          this.showToast('图片已上传', 'success');
+        }
+      } else {
+        throw new Error('上传失败');
       }
-    };
-    
-    reader.readAsDataURL(file);
+    } catch (error) {
+      // 备用: 保存base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base = this.content.bases.find(b => b.id === id);
+        if (base) {
+          base.image = e.target.result;
+          this.saveContent();
+          localPreview.src = e.target.result;
+          this.showToast('图片已保存(作为Base64)', 'success');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   saveBase(id) {
@@ -485,7 +556,7 @@ class AdminPanel {
 
     base.name = document.getElementById('edit-base-name').value;
     base.description = document.getElementById('edit-base-desc').value;
-    
+
     this.saveContent().then(() => {
       this.closeModal();
       this.renderBasesList();
@@ -493,8 +564,8 @@ class AdminPanel {
   }
 
   deleteBase(id) {
-    if (!confirm('确定要删除这个训练基地吗？')) return;
-    
+    if (!confirm('确定要删除这个训练基地吗?')) return;
+
     this.content.bases = this.content.bases.filter(b => b.id !== id);
     this.saveContent().then(() => this.renderBasesList());
   }
@@ -533,7 +604,7 @@ class AdminPanel {
       level: '国家二级运动员',
       image: ''
     };
-    
+
     this.content.athletes.push(newAthlete);
     this.saveContent().then(() => this.renderAthletesList());
   }
@@ -575,18 +646,51 @@ class AdminPanel {
     if (!input.files || !input.files[0]) return;
 
     const file = input.files[0];
-    const reader = new FileReader();
+    const formData = new FormData();
+    formData.append('image', file);
     
-    reader.onload = (e) => {
-      const athlete = this.content.athletes.find(a => a.id === id);
-      if (athlete) {
-        athlete.image = e.target.result;
-        this.saveContent();
-        this.showToast('照片已上传', 'success');
+    // 即时预览
+    const previewArea = input.parentElement;
+    const existingPreview = previewArea.querySelector('.preview-img');
+    if (existingPreview) existingPreview.remove();
+    const localPreview = document.createElement('img');
+    localPreview.className = 'preview-img';
+    localPreview.style = 'width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:10px;';
+    localPreview.src = URL.createObjectURL(file);
+    previewArea.appendChild(localPreview);
+
+    try {
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const athlete = this.content.athletes.find(a => a.id === id);
+        if (athlete) {
+          athlete.image = data.url || data.filename;
+          await this.saveContent();
+          localPreview.src = data.url || data.filename;
+          this.showToast('照片已上传', 'success');
+        }
+      } else {
+        throw new Error('上传失败');
       }
-    };
-    
-    reader.readAsDataURL(file);
+    } catch (error) {
+      // 备用: 保存base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const athlete = this.content.athletes.find(a => a.id === id);
+        if (athlete) {
+          athlete.image = e.target.result;
+          this.saveContent();
+          localPreview.src = e.target.result;
+          this.showToast('照片已保存(作为Base64)', 'success');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
   saveAthlete(id) {
@@ -595,7 +699,7 @@ class AdminPanel {
 
     athlete.name = document.getElementById('edit-athlete-name').value;
     athlete.level = document.getElementById('edit-athlete-level').value;
-    
+
     this.saveContent().then(() => {
       this.closeModal();
       this.renderAthletesList();
@@ -603,8 +707,8 @@ class AdminPanel {
   }
 
   deleteAthlete(id) {
-    if (!confirm('确定要删除这个队员吗？')) return;
-    
+    if (!confirm('确定要删除这个队员吗?')) return;
+
     this.content.athletes = this.content.athletes.filter(a => a.id !== id);
     this.saveContent().then(() => this.renderAthletesList());
   }
@@ -661,7 +765,7 @@ class AdminPanel {
     item.title = document.getElementById('edit-menu-title').value;
     item.link = document.getElementById('edit-menu-link').value;
     item.icon = document.getElementById('edit-menu-icon').value;
-    
+
     this.saveContent().then(() => {
       this.closeModal();
       this.renderMenuList();
@@ -669,7 +773,7 @@ class AdminPanel {
   }
 
   deleteMenu(id) {
-    if (!confirm('确定要删除这个菜单项吗？')) return;
+    if (!confirm('确定要删除这个菜单项吗?')) return;
     this.content.menu = this.content.menu.filter(m => m.id !== id);
     this.saveContent().then(() => {
       this.renderMenuList();
@@ -768,7 +872,7 @@ class AdminPanel {
         <input type="text" id="course-title" value="" placeholder="如: 私教课">
       </div>
       <div class="form-group">
-        <label>标签（如：热门、推荐）</label>
+        <label>标签(如:热门、推荐)</label>
         <input type="text" id="course-tag" value="" placeholder="如: 热门">
       </div>
       <div class="form-group">
@@ -796,7 +900,7 @@ class AdminPanel {
         <input type="text" id="course-cover" value="" placeholder="输入封面图片URL">
       </div>
       <div class="form-group">
-        <label style="color: var(--text-light);">提示：视频和封面图片请直接输入URL地址</label>
+        <label style="color: var(--text-light);">提示:视频和封面图片请直接输入URL地址</label>
       </div>
       <div style="display: flex; gap: 10px; margin-top: 20px;">
         <button class="btn btn-primary" onclick="admin.saveNewCourse('${season}')">保存</button>
@@ -840,9 +944,10 @@ class AdminPanel {
     if (!container || !this.content.courses) return;
 
     const courses = this.content.courses.snow || [];
-    
+
     container.innerHTML = courses.map((course, index) => `
-      <div class="list-item" data-id="${course.id}">
+      <div class="list-item" data-id="${course.id}" draggable="true" ondragstart="admin.dragStart(event)" ondragover="admin.dragOver(event)" ondrop="admin.dragDrop(event, 'snow')" ondragend="admin.dragEnd(event)">
+        <div class="list-item-handle" style="cursor:move;padding:0 10px;color:#999;">☰</div>
         <div class="list-item-info">
           <h4>${course.icon} ${course.title}</h4>
           <p>标签: ${course.tag} | 适合: ${course.content.crowd}</p>
@@ -859,15 +964,57 @@ class AdminPanel {
     `;
   }
 
+  // 拖拽开始
+  dragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.id);
+    e.target.style.opacity = '0.5';
+  }
+
+  // 拖拽经过
+  dragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  }
+
+  // 放下
+  dragDrop(e, season) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    const draggedId = e.dataTransfer.getData('text/plain');
+    const targetId = e.currentTarget.dataset.id;
+    if (draggedId === targetId) return;
+
+    const courses = this.content.courses[season];
+    const draggedIdx = courses.findIndex(c => c.id === draggedId);
+    const targetIdx = courses.findIndex(c => c.id === targetId);
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    // 移动元素
+    const [draggedItem] = courses.splice(draggedIdx, 1);
+    courses.splice(targetIdx, 0, draggedItem);
+
+    this.saveContent().then(() => {
+      if (season === 'snow') this.renderCoursesSnowList();
+      else this.renderCoursesOffseasonList();
+    });
+  }
+
+  // 拖拽结束
+  dragEnd(e) {
+    e.target.style.opacity = '1';
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  }
+
   // 渲染非雪季课程列表
   renderCoursesOffseasonList() {
     const container = document.getElementById('courses-offseason-list');
     if (!container || !this.content.courses) return;
 
     const courses = this.content.courses.offseason || [];
-    
+
     container.innerHTML = courses.map((course, index) => `
-      <div class="list-item" data-id="${course.id}">
+      <div class="list-item" data-id="${course.id}" draggable="true" ondragstart="admin.dragStart(event)" ondragover="admin.dragOver(event)" ondrop="admin.dragDrop(event, 'offseason')" ondragend="admin.dragEnd(event)">
+        <div class="list-item-handle" style="cursor:move;padding:0 10px;color:#999;">☰</div>
         <div class="list-item-info">
           <h4>${course.icon} ${course.title}</h4>
           <p>标签: ${course.tag} | 适合: ${course.content.crowd}</p>
@@ -888,11 +1035,11 @@ class AdminPanel {
   addCourse(season) {
     const modal = this.createModal('添加课程', `
       <div class="form-group">
-        <label>课程ID（英文唯一标识）</label>
+        <label>课程ID(英文唯一标识)</label>
         <input type="text" id="course-id" placeholder="如: new-course">
       </div>
       <div class="form-group">
-        <label>图标（emoji）</label>
+        <label>图标(emoji)</label>
         <input type="text" id="course-icon" placeholder="如: 🎿">
       </div>
       <div class="form-group">
@@ -920,7 +1067,7 @@ class AdminPanel {
         <input type="text" id="course-price" placeholder="如: 详询顾问">
       </div>
       <div class="form-group">
-        <label>特点标签（用逗号分隔）</label>
+        <label>特点标签(用逗号分隔)</label>
         <input type="text" id="course-features" placeholder="如: 专业,高效,安全">
       </div>
       <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -962,7 +1109,7 @@ class AdminPanel {
     // 检查ID是否重复
     const exists = this.content.courses[season].find(c => c.id === id);
     if (exists) {
-      alert('课程ID已存在，请使用不同的ID');
+      alert('课程ID已存在,请使用不同的ID');
       return;
     }
 
@@ -982,8 +1129,8 @@ class AdminPanel {
     const course = this.content.courses[season].find(c => c.id === id);
     if (!course) return;
 
-    const coverPreview = course.content.cover 
-      ? '<img src="' + course.content.cover + '" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;">' 
+    const coverPreview = course.content.cover
+      ? '<img src="' + course.content.cover + '" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;">'
       : '<p style="color:#666;font-size:0.9rem;">暂无封面</p>';
     const videoVal = course.content.video || '';
     const coverVal = course.content.cover || '';
@@ -1009,7 +1156,7 @@ class AdminPanel {
     subCoursesHtml += '<button class="btn btn-primary" style="margin-top:8px;" onclick="admin.addSubCourse(\'' + season + '\',\'' + id + '\')">+ 添加子课程</button>';
     subCoursesHtml += '</div>';
 
-    const modal = this.createModal('编辑课程', 
+    const modal = this.createModal('编辑课程',
       '<div class="form-group"><label>图标</label><input type="text" id="course-icon" value="' + course.icon + '"></div>' +
       '<div class="form-group"><label>课程名称</label><input type="text" id="course-title" value="' + course.title + '"></div>' +
       '<div class="form-group"><label>标签</label><input type="text" id="course-tag" value="' + (course.tag || '') + '"></div>' +
@@ -1024,7 +1171,7 @@ class AdminPanel {
       '<div style="display:flex;gap:10px;margin-top:20px;"><button class="btn btn-primary" id="btn-save-course">保存</button><button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>'
     );
     document.body.appendChild(modal);
-    
+
     document.getElementById('btn-save-course').onclick = () => this.saveCourse(season, id);
   }
 
@@ -1073,7 +1220,7 @@ class AdminPanel {
 
   // 删除课程
   deleteCourse(season, id) {
-    if (!confirm('确定要删除这个课程吗？')) return;
+    if (!confirm('确定要删除这个课程吗?')) return;
 
     const index = this.content.courses[season].findIndex(c => c.id === id);
     if (index > -1) {
@@ -1126,7 +1273,7 @@ class AdminPanel {
     toast.className = `toast ${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
-    
+
     setTimeout(() => toast.classList.add('show'), 10);
     setTimeout(() => {
       toast.classList.remove('show');
@@ -1142,10 +1289,10 @@ class AdminPanel {
       tab.addEventListener('click', (e) => {
         const target = e.target.dataset.tab;
         if (!target) return;
-        
+
         // 隐藏所有子菜单
         document.querySelectorAll('.admin-subtabs').forEach(s => s.classList.remove('visible'));
-        
+
         // 显示对应子菜单并切换panel
         if (target === 'apply') {
           document.getElementById('apply-subtabs').classList.add('visible');
@@ -1169,7 +1316,7 @@ class AdminPanel {
       });
     });
 
-    // 子 Tab 切换（事件委托）
+    // 子 Tab 切换(事件委托)
     document.querySelectorAll('.admin-subtabs').forEach(subtabs => {
       subtabs.addEventListener('click', (e) => {
         const btn = e.target.closest('.admin-subtab');
@@ -1195,7 +1342,7 @@ class AdminPanel {
 
   switchSubTab(parent, target) {
     console.log('switchSubTab called:', { parent: parent, target: target });
-    
+
     // 父级高亮
     document.querySelectorAll('.admin-tab').forEach(t => {
       if (t.dataset.tab === parent) t.classList.add('active');
@@ -1226,7 +1373,7 @@ class AdminPanel {
     if (target === 'rules') { this.renderRecommendationConfig(); this.renderRecommendationActivities(); this.renderRules(); }
     if (target === 'quizStats') this.loadQuizStatistics();
   }
-  
+
   switchMainTab(target) {
     console.log('switchMainTab called:', target);
     // 高亮对应tab
@@ -1257,7 +1404,7 @@ class AdminPanel {
     const typeNames = { single: '单选', multiple: '多选', input: '输入' };
     const self = this;
     container.innerHTML = this.content.quiz.questions.map((q, idx) => '<div class="quiz-item" draggable="true" data-id="'+q.id+'" data-idx="'+idx+'" style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:12px;border-left:4px solid #C9A962;cursor:move;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><div><span style="background:#C9A962;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;margin-right:8px;">☰ 拖拽</span><span style="background:#C9A962;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;margin-right:8px;">ID:'+q.id+'</span><span style="background:'+typeColors[q.type]+';color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;">'+typeNames[q.type]+'</span></div><div style="display:flex;gap:8px;"><button class="btn-edit" data-action="edit" data-id="'+q.id+'">编辑</button><button class="btn-delete" data-action="delete" data-id="'+q.id+'">删除</button></div></div><p style="font-weight:600;margin:8px 0;">'+(idx+1)+'. '+q.content+'</p></div>').join('');
-    
+
     // 拖拽排序
     let draggedIdx = null;
     container.querySelectorAll('.quiz-item').forEach(item => {
@@ -1288,7 +1435,7 @@ class AdminPanel {
         }
       });
     });
-    
+
     // 事件委托
     container.onclick = (e) => {
       const btn = e.target.closest('button[data-action]');
@@ -1321,7 +1468,7 @@ class AdminPanel {
 
   addQuestion() {
     const id = 'q' + (this.content.quiz?.questions?.length + 1 || 1);
-    const modal = this.createModal('添加题目', '<div class="form-group"><label>题目ID</label><input type="text" id="new-q-id" value="'+id+'"></div><div class="form-group"><label>题目类型</label><select id="new-q-type"><option value="single">单选</option><option value="multiple">多选</option><option value="input">输入框</option></select></div><div class="form-group"><label>题目内容</label><textarea id="new-q-content" rows="2"></textarea></div><div class="form-group" id="new-q-opt"><label>答案（每行一个）</label><textarea id="new-q-options" rows="3"></textarea></div><div style="display:flex;gap:12px;margin-top:20px;"><button class="btn btn-primary" onclick="admin.saveNewQuestion()">保存</button><button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>');
+    const modal = this.createModal('添加题目', '<div class="form-group"><label>题目ID</label><input type="text" id="new-q-id" value="'+id+'"></div><div class="form-group"><label>题目类型</label><select id="new-q-type"><option value="single">单选</option><option value="multiple">多选</option><option value="input">输入框</option></select></div><div class="form-group"><label>题目内容</label><textarea id="new-q-content" rows="2"></textarea></div><div class="form-group" id="new-q-opt"><label>答案(每行一个)</label><textarea id="new-q-options" rows="3"></textarea></div><div style="display:flex;gap:12px;margin-top:20px;"><button class="btn btn-primary" onclick="admin.saveNewQuestion()">保存</button><button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>');
     document.body.appendChild(modal);
     document.getElementById('new-q-type').onchange = function() { document.getElementById('new-q-opt').style.display = this.value === 'input' ? 'none' : 'block'; };
   }
@@ -1352,7 +1499,7 @@ class AdminPanel {
     const optLines = q.options?.map(o => o.text+'|'+o.next).join('\n') || '';
     const qIds = this.content.quiz?.questions?.map(q => q.id) || [];
         const nextOptions = qIds.map(qid => '<option value="'+qid+'"'+(q.next===qid?' selected':'')+'>'+qid+'</option>').join('');
-        const optHtml = q.type !== 'input' ? '<div class="form-group"><label>答案选项（每行一个）</label><textarea id="edit-q-options" rows="4">'+optLines+'</textarea></div>' : '<div class="form-group"><label>占位文字</label><input type="text" id="edit-q-placeholder" value="'+(q.placeholder||'')+'"></div><div class="form-group"><label>下一题</label><select id="edit-q-next" style="width:100%;padding:8px;"><option value="end">结束</option>'+nextOptions+'</select></div>';
+        const optHtml = q.type !== 'input' ? '<div class="form-group"><label>答案选项(每行一个)</label><textarea id="edit-q-options" rows="4">'+optLines+'</textarea></div>' : '<div class="form-group"><label>占位文字</label><input type="text" id="edit-q-placeholder" value="'+(q.placeholder||'')+'"></div><div class="form-group"><label>下一题</label><select id="edit-q-next" style="width:100%;padding:8px;"><option value="end">结束</option>'+nextOptions+'</select></div>';
     const modal = this.createModal('编辑题目', '<div class="form-group"><label>题目ID</label><input type="text" id="edit-q-id" value="'+qid+'" style="width:100%;padding:8px;"></div><div class="form-group"><label>题目类型</label><select id="edit-q-type"><option value="single" '+selS+'>单选</option><option value="multiple" '+selM+'>多选</option><option value="input" '+selI+'>输入框</option></select></div><div class="form-group"><label>题目内容</label><textarea id="edit-q-content" rows="2">'+q.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')+'</textarea></div>'+optHtml+'<div style="display:flex;gap:12px;margin-top:20px;"><button class="btn btn-primary" onclick="admin.saveEditQuestion(\''+qid+'\')">保存</button><button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>');
     document.body.appendChild(modal);
   }
@@ -1365,7 +1512,7 @@ class AdminPanel {
     if (newId !== oldId) {
       // Check if new ID already exists
       if (questions.some(q => q.id === newId)) {
-        alert('ID已存在，请使用其他ID');
+        alert('ID已存在,请使用其他ID');
         return;
       }
       q.id = newId;
@@ -1374,15 +1521,15 @@ class AdminPanel {
     q.content = document.getElementById('edit-q-content').value.trim();
     if (q.type !== 'input') {
       q.options = document.getElementById('edit-q-options').value.trim().split('\n').map(line => { const parts = line.split('|'); return { text: parts[0].trim(), next: parts[1]?.trim() || 'end' }; }).filter(opt => opt.text);
-    } else { 
-      q.placeholder = document.getElementById('edit-q-placeholder').value; 
-      q.next = document.getElementById('edit-q-next').value; 
+    } else {
+      q.placeholder = document.getElementById('edit-q-placeholder').value;
+      q.next = document.getElementById('edit-q-next').value;
     }
     this.saveContent().then(() => { this.closeModal(); this.showToast('已保存', 'success'); this.renderQuizQuestions(); });
   }
 
   deleteQuestion(id) {
-    if (!confirm('确定删除？')) return;
+    if (!confirm('确定删除?')) return;
     this.content.quiz.questions = this.content.quiz.questions.filter(q => q.id !== id);
     this.saveContent().then(() => { this.showToast('已删除', 'success'); this.renderQuizQuestions(); });
   }
@@ -1472,7 +1619,7 @@ class AdminPanel {
     var course = courses[idx];
     if (!course.subCourses) course.subCourses = [];
     var nextOrder = course.subCourses.length + 1;
-    var m = this.createModal('添加子课程', '<div class="form-group"><label>序号</label><input type="number" id="sub-order" value="' + nextOrder + '" style="width:80px;"></div><div class="form-group"><label>名称 *</label><input type="text" id="sub-name" placeholder="名称" style="width:100%;padding:8px;"></div><div class="form-group"><label>类别</label><input type="text" id="sub-cat" placeholder="如：初级" style="width:100%;padding:8px;"></div><div class="form-group"><label>时限</label><input type="text" id="sub-time" placeholder="如：10课时" style="width:100%;padding:8px;"></div><div class="form-group"><label>价格</label><input type="text" id="sub-price" placeholder="如：¥2000" style="width:100%;padding:8px;"></div><div class="form-group"><label>说明</label><textarea id="sub-desc" rows="3" style="width:100%;padding:8px;"></textarea></div><div class="form-group"><label>备注</label><input type="text" id="sub-notes" placeholder="选填" style="width:100%;padding:8px;"></div><div style="margin-top:20px;"><button id="btn-add-sub" class="btn btn-primary">添加</button> <button onclick="admin.closeModal()" class="btn btn-secondary">取消</button></div>');
+    var m = this.createModal('添加子课程', '<div class="form-group"><label>序号</label><input type="number" id="sub-order" value="' + nextOrder + '" style="width:80px;"></div><div class="form-group"><label>名称 *</label><input type="text" id="sub-name" placeholder="名称" style="width:100%;padding:8px;"></div><div class="form-group"><label>类别</label><input type="text" id="sub-cat" placeholder="如:初级" style="width:100%;padding:8px;"></div><div class="form-group"><label>时限</label><input type="text" id="sub-time" placeholder="如:10课时" style="width:100%;padding:8px;"></div><div class="form-group"><label>价格</label><input type="text" id="sub-price" placeholder="如:¥2000" style="width:100%;padding:8px;"></div><div class="form-group"><label>说明</label><textarea id="sub-desc" rows="3" style="width:100%;padding:8px;"></textarea></div><div class="form-group"><label>备注</label><input type="text" id="sub-notes" placeholder="选填" style="width:100%;padding:8px;"></div><div style="margin-top:20px;"><button id="btn-add-sub" class="btn btn-primary">添加</button> <button onclick="admin.closeModal()" class="btn btn-secondary">取消</button></div>');
     document.body.appendChild(m);
     var self = this;
     document.getElementById('btn-add-sub').onclick = function() {
@@ -1513,7 +1660,7 @@ class AdminPanel {
   }
 
   deleteSubCourse(idx, subIdx) {
-    if (!confirm('确定删除？')) return;
+    if (!confirm('确定删除?')) return;
     var courses = this.selectedCategory === 'snow' ? this.content.courses.snow : this.content.courses.offseason;
     courses[idx].subCourses.splice(subIdx, 1);
     this.saveContent().then(() => { this.showToast('已删除','success'); this.renderCategoryCourses(); });
@@ -1524,7 +1671,7 @@ class AdminPanel {
     var list = document.getElementById('activities-list');
     if (!list) return;
     var acts = this.content.activities || [];
-    if (acts.length === 0) { list.innerHTML = '<p style="color:#999;text-align:center;padding:30px;">暂无活动，点击上方按钮添加</p>'; return; }
+    if (acts.length === 0) { list.innerHTML = '<p style="color:#999;text-align:center;padding:30px;">暂无活动,点击上方按钮添加</p>'; return; }
     var self = this;
     var html = '';
     acts.forEach(function(a, i) {
@@ -1533,7 +1680,7 @@ class AdminPanel {
       html += '<strong style="font-size:1.1rem;color:#0039A6;">' + a.title + '</strong>';
       html += '<div><button class="btn-action" data-action="editAct" data-idx="' + i + '">编辑</button> <button class="btn-action" data-action="delAct" data-idx="' + i + '">删除</button></div>';
       html += '</div>';
-      if (a.tableLink) html += '<div style="margin-top:8px;font-size:0.9rem;color:#666;">📋 活动表：<a href="' + a.tableLink + '" target="_blank">查看链接</a></div>';
+      if (a.tableLink) html += '<div style="margin-top:8px;font-size:0.9rem;color:#666;">📋 活动表:<a href="' + a.tableLink + '" target="_blank">查看链接</a></div>';
       html += '</div>';
     });
     list.innerHTML = html;
@@ -1549,7 +1696,7 @@ class AdminPanel {
 
   addActivity() {
     var self = this;
-    var m = this.createModal('添加活动', '<div class="form-group"><label>活动名称 *</label><input type="text" id="act-title" placeholder="如：暑期优惠" style="width:100%;padding:8px;"></div><div class="form-group"><label>活动表链接</label><input type="text" id="act-link" placeholder="粘贴WPS表格链接" style="width:100%;padding:8px;"></div><div id="act-preview" style="margin-top:10px;"></div><div style="margin-top:20px;"><button id="btn-add-act" class="btn btn-primary">添加</button> <button onclick="admin.closeModal()" class="btn btn-secondary">取消</button></div>');
+    var m = this.createModal('添加活动', '<div class="form-group"><label>活动名称 *</label><input type="text" id="act-title" placeholder="如:暑期优惠" style="width:100%;padding:8px;"></div><div class="form-group"><label>活动表链接</label><input type="text" id="act-link" placeholder="粘贴WPS表格链接" style="width:100%;padding:8px;"></div><div id="act-preview" style="margin-top:10px;"></div><div style="margin-top:20px;"><button id="btn-add-act" class="btn btn-primary">添加</button> <button onclick="admin.closeModal()" class="btn btn-secondary">取消</button></div>');
     document.body.appendChild(m);
     var preview = document.getElementById('act-preview');
     document.getElementById('act-link').addEventListener('input', function() {
@@ -1580,7 +1727,7 @@ class AdminPanel {
   }
 
   deleteActivity(idx) {
-    if (!confirm('确定删除？')) return;
+    if (!confirm('确定删除?')) return;
     this.content.activities.splice(idx, 1);
     this.saveContent().then(() => { this.showToast('已删除','success'); this.renderActivities(); });
   }
@@ -1590,7 +1737,7 @@ class AdminPanel {
     var list = document.getElementById('rules-list');
     if (!list) return;
     var rules = this.content.recommendRules || [];
-    if (rules.length === 0) { list.innerHTML = '<p style="color:#999;text-align:center;padding:30px;">暂无规则，点击上方按钮添加</p>'; return; }
+    if (rules.length === 0) { list.innerHTML = '<p style="color:#999;text-align:center;padding:30px;">暂无规则,点击上方按钮添加</p>'; return; }
     var self = this;
     var html = '';
     rules.forEach(function(r, i) {
@@ -1598,9 +1745,9 @@ class AdminPanel {
       html += '<div style="display:flex;justify-content:space-between;align-items:start;"><strong style="font-size:1.1rem;color:#0039A6;">' + r.name + '</strong>';
       html += '<div><button class="btn-action" data-action="editRule" data-idx="' + i + '">编辑</button> <button class="btn-action" data-action="delRule" data-idx="' + i + '">删除</button></div></div>';
       html += '<div style="font-size:0.9rem;color:#666;margin-top:8px;">';
-      html += '<p>🎯 条件：' + (r.conditions?.goal||'不限') + ' | ' + (r.conditions?.budget||'不限') + ' | ' + (r.conditions?.experience||'不限') + '</p>';
-      html += '<p>📦 推荐课程：' + (r.result?.courseTitle||'未设置') + '</p>';
-      html += '<p>💰 匹配活动：' + (r.result?.activityTitle||'无') + '</p>';
+      html += '<p>🎯 条件:' + (r.conditions?.goal||'不限') + ' | ' + (r.conditions?.budget||'不限') + ' | ' + (r.conditions?.experience||'不限') + '</p>';
+      html += '<p>📦 推荐课程:' + (r.result?.courseTitle||'未设置') + '</p>';
+      html += '<p>💰 匹配活动:' + (r.result?.activityTitle||'无') + '</p>';
       html += '</div></div>';
     });
     list.innerHTML = html;
@@ -1616,7 +1763,7 @@ class AdminPanel {
 
   addRule() {
     var self = this;
-    var html = '<div class="form-group"><label>规则名称 *</label><input type="text" id="rule-name" placeholder="如：初学者推荐" style="width:100%;padding:8px;"></div>';
+    var html = '<div class="form-group"><label>规则名称 *</label><input type="text" id="rule-name" placeholder="如:初学者推荐" style="width:100%;padding:8px;"></div>';
     html += '<div style="border:1px solid #ddd;padding:15px;border-radius:8px;margin-bottom:15px;">';
     html += '<h4 style="margin-bottom:10px;">🎯 匹配条件</h4>';
     html += '<div class="form-group"><label>学习目的</label><select id="rule-goal" style="width:100%;padding:8px;"><option value="">不限</option><option value="入门体验">入门体验</option><option value="技术提升">技术提升</option><option value="考证">考证</option><option value="竞技">竞技</option></select></div>';
@@ -1631,7 +1778,7 @@ class AdminPanel {
     snowCourses.forEach(function(c) { html += '<option value="' + c.id + '">🏔️ ' + c.title + '</option>'; });
     offseasonCourses.forEach(function(c) { html += '<option value="' + c.id + '">🌿 ' + c.title + '</option>'; });
     html += '</select></div>';
-    html += '<div class="form-group"><label>匹配活动（可选）</label><select id="rule-activity" style="width:100%;padding:8px;"><option value="">无</option>';
+    html += '<div class="form-group"><label>匹配活动(可选)</label><select id="rule-activity" style="width:100%;padding:8px;"><option value="">无</option>';
     var acts = this.content.activities || [];
     acts.forEach(function(a) { html += '<option value="' + a.title + '">' + a.title + '</option>'; });
     html += '</select></div>';
@@ -1681,7 +1828,7 @@ class AdminPanel {
     snowCourses.forEach(function(c) { html += '<option value="' + c.id + '"' + (r.result?.courseId===c.id?' selected':'') + '>🏔️ ' + c.title + '</option>'; });
     offseasonCourses.forEach(function(c) { html += '<option value="' + c.id + '"' + (r.result?.courseId===c.id?' selected':'') + '>🌿 ' + c.title + '</option>'; });
     html += '</select></div>';
-    html += '<div class="form-group"><label>匹配活动（可选）</label><select id="rule-activity" style="width:100%;padding:8px;"><option value="">无</option>';
+    html += '<div class="form-group"><label>匹配活动(可选)</label><select id="rule-activity" style="width:100%;padding:8px;"><option value="">无</option>';
     var acts = this.content.activities || [];
     acts.forEach(function(a) { html += '<option value="' + a.title + '"' + (r.result?.activityTitle===a.title?' selected':'') + '>' + a.title + '</option>'; });
     html += '</select></div>';
@@ -1729,18 +1876,18 @@ class AdminPanel {
     html += '<div class="form-group"><label>显示数量</label><input type="number" id="cfg-maxResults" value="' + (config.displaySettings?.maxResults||4) + '" min="1" max="10" style="width:100%;padding:8px;"></div>';
     html += '<div class="form-group"><label>匹配度起始值</label><input type="number" id="cfg-matchBase" value="' + (config.matchRateBase||95) + '" min="50" max="100" style="width:100%;padding:8px;"></div>';
     html += '<div class="form-group"><label>匹配度递减</label><input type="number" id="cfg-matchDec" value="' + (config.matchRateDecrement||8) + '" min="1" max="20" style="width:100%;padding:8px;"></div></div>';
-    html += '<div style="margin-bottom:16px;"><strong>显示设置：</strong></div>';
+    html += '<div style="margin-bottom:16px;"><strong>显示设置:</strong></div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:20px;">';
     html += '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="cfg-showMatch" ' + (config.displaySettings?.showMatchRate?'checked':'') + '> 显示匹配度</label>';
     html += '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="cfg-showAct" ' + (config.displaySettings?.showActivities?'checked':'') + '> 显示活动标签</label>';
     html += '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="cfg-showSave" ' + (config.displaySettings?.showSaving?'checked':'') + '> 显示省钱方案</label>';
     html += '<label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="cfg-showLink" ' + (config.displaySettings?.showTableLink?'checked':'') + '> 显示表格链接</label></div>';
-    
+
     container.innerHTML = html;
-    // 自动保存配置（输入变化时）
+    // 自动保存配置(输入变化时)
     container.querySelectorAll('input, select').forEach(function(el) {
       el.addEventListener('change', function() { admin.saveRecommendationConfig(); });
-      el.addEventListener('input', function() { 
+      el.addEventListener('input', function() {
         // 防抖保存
         clearTimeout(window._cfgSaveTimer);
         window._cfgSaveTimer = setTimeout(function() { admin.saveRecommendationConfig(); }, 1500);
@@ -1774,7 +1921,7 @@ class AdminPanel {
     var list = document.getElementById('activities-list');
     if (!list) return;
     var activities = this.content.activities || [];
-    if (activities.length === 0) { list.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">暂无活动，点击上方按钮添加</p>'; return; }
+    if (activities.length === 0) { list.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">暂无活动,点击上方按钮添加</p>'; return; }
     var self = this;
     var html = '';
     activities.forEach(function(act, i) {
@@ -1803,12 +1950,12 @@ class AdminPanel {
 
   addActivity() {
     var self = this;
-    var html = '<div class="form-group"><label>活动名称 *</label><input type="text" id="act-title" placeholder="如：早鸟优惠" style="width:100%;padding:8px;"></div>';
-    html += '<div class="form-group"><label>活动标签</label><input type="text" id="act-badge" placeholder="如：🎁 限时" style="width:100%;padding:8px;"></div>';
+    var html = '<div class="form-group"><label>活动名称 *</label><input type="text" id="act-title" placeholder="如:早鸟优惠" style="width:100%;padding:8px;"></div>';
+    html += '<div class="form-group"><label>活动标签</label><input type="text" id="act-badge" placeholder="如:🎁 限时" style="width:100%;padding:8px;"></div>';
     html += '<div class="form-group"><label>活动描述</label><textarea id="act-desc" rows="2" placeholder="活动的详细说明" style="width:100%;padding:8px;"></textarea></div>';
-    html += '<div class="form-group"><label>优惠方式</label><input type="text" id="act-discount" placeholder="如：9折、立减200元" style="width:100%;padding:8px;"></div>';
-    html += '<div class="form-group"><label>预计节省</label><input type="text" id="act-savings" placeholder="如：省1280元" style="width:100%;padding:8px;"></div>';
-    html += '<div class="form-group"><label>适用条件</label><input type="text" id="act-condition" placeholder="如：提前30天报名" style="width:100%;padding:8px;"></div>';
+    html += '<div class="form-group"><label>优惠方式</label><input type="text" id="act-discount" placeholder="如:9折、立减200元" style="width:100%;padding:8px;"></div>';
+    html += '<div class="form-group"><label>预计节省</label><input type="text" id="act-savings" placeholder="如:省1280元" style="width:100%;padding:8px;"></div>';
+    html += '<div class="form-group"><label>适用条件</label><input type="text" id="act-condition" placeholder="如:提前30天报名" style="width:100%;padding:8px;"></div>';
     html += '<div class="form-group"><label>适用课程类型</label><div style="display:flex;gap:20px;margin-top:8px;">';
     html += '<label><input type="checkbox" id="act-snow" checked> ❄️ 雪季课程</label>';
     html += '<label><input type="checkbox" id="act-offseason"> 🌿 非雪季课程</label></div></div>';
@@ -1877,7 +2024,7 @@ class AdminPanel {
   }
 
   deleteActivity(idx) {
-    if (!confirm('确定删除此活动？')) return;
+    if (!confirm('确定删除此活动?')) return;
     this.content.activities.splice(idx, 1);
     this.saveContent().then(() => { this.showToast('已删除', 'success'); this.renderRecommendationActivities(); });
   }
@@ -1886,9 +2033,9 @@ class AdminPanel {
   renderLotterySettings() {
     var lottery = this.content.lottery || { enabled: true, prizes: [], records: [], rules: [] };
     if (!this.content.lottery) this.content.lottery = lottery;
-    
+
     document.getElementById('lottery-enabled-create').checked = lottery.enabled !== false;
-    
+
     var rulesEl = document.getElementById('lottery-rules-create');
     if (rulesEl) {
       var rules = lottery.rules || [];
@@ -1898,21 +2045,21 @@ class AdminPanel {
         rulesEl.value = rules;
       }
     }
-    
+
     // 只使用新的渲染方法
-    // this.renderPrizesList(); // 已废弃，使用renderPrizesListNew
+    // this.renderPrizesList(); // 已废弃,使用renderPrizesListNew
     this.renderLotteryRecords();
   }
 
   saveLotterySettings() {
     var lottery = this.content.lottery || { prizes: [], records: [] };
     lottery.enabled = document.getElementById('lottery-enabled-create').checked;
-    
+
     var rulesEl = document.getElementById('lottery-rules-create');
     if (rulesEl && rulesEl.value) {
       lottery.rules = rulesEl.value.split('\n').filter(function(r) { return r.trim(); });
     }
-    
+
     this.content.lottery = lottery;
     this.saveContent().then(function() { this.showToast('设置已保存', 'success'); }.bind(this));
   }
@@ -1920,15 +2067,15 @@ class AdminPanel {
   renderPrizesList() {
     var container = document.getElementById('prizes-list-create');
     if (!container) return;
-    
+
     var lottery = this.content.lottery || { prizes: [] };
     var prizes = lottery.prizes || [];
-    
+
     if (prizes.length === 0) {
-      container.innerHTML = '<p style="color: var(--text-light);">暂无奖品，点击上方按钮添加</p>';
+      container.innerHTML = '<p style="color: var(--text-light);">暂无奖品,点击上方按钮添加</p>';
       return;
     }
-    
+
     var self = this;
     container.innerHTML = prizes.map(function(p, i) {
       return '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;">' +
@@ -1946,9 +2093,9 @@ class AdminPanel {
   addPrize() {
     var lottery = this.content.lottery || { prizes: [], records: [] };
     lottery.prizes = lottery.prizes || [];
-    
+
     var newId = lottery.prizes.length > 0 ? Math.max.apply(null, lottery.prizes.map(function(p) { return p.id || 0; })) + 1 : 1;
-    
+
     var prize = {
       id: newId,
       name: '新奖品',
@@ -1959,25 +2106,25 @@ class AdminPanel {
       total: 10,
       remain: 10
     };
-    
+
     var self = this;
     var html = '<div class="form-group"><label>奖品名称</label><input type="text" id="prize-name" value="' + prize.name + '"></div>' +
-      '<div class="form-group"><label>图标</label><input type="text" id="prize-icon" value="' + prize.icon + '" placeholder="如：🏆"></div>' +
+      '<div class="form-group"><label>图标</label><input type="text" id="prize-icon" value="' + prize.icon + '" placeholder="如:🏆"></div>' +
       '<div class="form-group"><label>描述</label><input type="text" id="prize-desc" value="' + prize.description + '"></div>' +
       '<div class="form-group"><label>价值/优惠</label><input type="text" id="prize-value" value="' + prize.value + '"></div>' +
-      '<div class="form-group"><label>中奖概率 (0-1，如0.1表示10%)</label><input type="number" id="prize-prob" value="' + prize.probability + '" step="0.01" min="0" max="1"></div>' +
+      '<div class="form-group"><label>中奖概率 (0-1,如0.1表示10%)</label><input type="number" id="prize-prob" value="' + prize.probability + '" step="0.01" min="0" max="1"></div>' +
       '<div class="form-group"><label>总数量</label><input type="number" id="prize-total" value="' + prize.total + '" min="1"></div>';
-    
+
     var modal = this.createModal('添加奖品', html + '<div style="margin-top:20px;"><button class="btn btn-primary" onclick="admin.saveNewPrize()">保存</button> <button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>');
     document.body.appendChild(modal);
-    
+
     this.tempPrize = prize;
   }
 
   saveNewPrize() {
     var lottery = this.content.lottery || { prizes: [], records: [] };
     lottery.prizes = lottery.prizes || [];
-    
+
     var prize = this.tempPrize;
     prize.name = document.getElementById('prize-name').value || prize.name;
     prize.icon = document.getElementById('prize-icon').value || prize.icon;
@@ -1986,10 +2133,10 @@ class AdminPanel {
     prize.probability = parseFloat(document.getElementById('prize-prob').value) || prize.probability;
     prize.total = parseInt(document.getElementById('prize-total').value) || prize.total;
     prize.remain = prize.remain || prize.total;
-    
+
     lottery.prizes.push(prize);
     this.content.lottery = lottery;
-    
+
     var self = this;
     this.saveContent().then(function() {
       self.closeModal();
@@ -2002,7 +2149,7 @@ class AdminPanel {
     var lottery = this.content.lottery || { prizes: [] };
     var prize = lottery.prizes[index];
     if (!prize) return;
-    
+
     var self = this;
     var html = '<div class="form-group"><label>奖品名称</label><input type="text" id="prize-name" value="' + prize.name + '"></div>' +
       '<div class="form-group"><label>图标</label><input type="text" id="prize-icon" value="' + prize.icon + '"></div>' +
@@ -2010,7 +2157,7 @@ class AdminPanel {
       '<div class="form-group"><label>价值/优惠</label><input type="text" id="prize-value" value="' + (prize.value || '') + '"></div>' +
       '<div class="form-group"><label>中奖概率 (0-1)</label><input type="number" id="prize-prob" value="' + prize.probability + '" step="0.01" min="0" max="1"></div>' +
       '<div class="form-group"><label>剩余数量</label><input type="number" id="prize-remain" value="' + (prize.remain || 0) + '" min="0"></div>';
-    
+
     var modal = this.createModal('编辑奖品', html + '<div style="margin-top:20px;"><button class="btn btn-primary" onclick="admin.savePrize(' + index + ')">保存</button> <button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>');
     document.body.appendChild(modal);
   }
@@ -2019,16 +2166,16 @@ class AdminPanel {
     var lottery = this.content.lottery || { prizes: [], records: [] };
     var prize = lottery.prizes[index];
     if (!prize) return;
-    
+
     prize.name = document.getElementById('prize-name').value || prize.name;
     prize.icon = document.getElementById('prize-icon').value || prize.icon;
     prize.description = document.getElementById('prize-desc').value || prize.description;
     prize.value = document.getElementById('prize-value').value || prize.value;
     prize.probability = parseFloat(document.getElementById('prize-prob').value) || prize.probability;
     prize.remain = parseInt(document.getElementById('prize-remain').value) || 0;
-    
+
     this.content.lottery = lottery;
-    
+
     var self = this;
     this.saveContent().then(function() {
       self.closeModal();
@@ -2038,12 +2185,12 @@ class AdminPanel {
   }
 
   deletePrize(index) {
-    if (!confirm('确定删除此奖品？')) return;
-    
+    if (!confirm('确定删除此奖品?')) return;
+
     var lottery = this.content.lottery || { prizes: [], records: [] };
     lottery.prizes.splice(index, 1);
     this.content.lottery = lottery;
-    
+
     var self = this;
     this.saveContent().then(function() {
       self.showToast('奖品已删除', 'success');
@@ -2054,22 +2201,22 @@ class AdminPanel {
   renderLotteryRecords() {
     var container = document.getElementById('lottery-records-list');
     if (!container) return;
-    
+
     var lottery = this.content.lottery || { records: [] };
     var records = lottery.records || [];
-    
+
     if (records.length === 0) {
       container.innerHTML = '<p style="color: var(--text-light);">暂无中奖记录</p>';
       return;
     }
-    
+
     container.innerHTML = '<table style="width:100%;border-collapse:collapse;"><tr style="background:#f0f0f0;"><th style="padding:8px;text-align:left;">时间</th><th style="padding:8px;text-align:left;">姓名</th><th style="padding:8px;text-align:left;">电话</th><th style="padding:8px;text-align:left;">奖品</th></tr>' +
       records.map(function(r) {
         return '<tr style="border-bottom:1px solid #eee;"><td style="padding:8px;">' + (r.time || '') + '</td><td style="padding:8px;">' + (r.name || '') + '</td><td style="padding:8px;">' + (r.phone || '') + '</td><td style="padding:8px;">' + (r.prize || '') + '</td></tr>';
       }).join('') + '</table>';
   }
 
-  // ==================== 抽奖活动管理（新） ====================
+  // ==================== 抽奖活动管理(新) ====================
   async loadLotterySettings() {
     try {
       const res = await fetch('/api/lottery/settings');
@@ -2081,7 +2228,7 @@ class AdminPanel {
         document.getElementById('lottery-times-create').value = data.settings.maxDrawsPerUser !== undefined ? data.settings.maxDrawsPerUser : 1;
         document.getElementById('lottery-interval-create').value = data.settings.drawCooldownMinutes || 0;
         document.getElementById('lottery-type-create').value = data.settings.lotteryType || 'probability';
-        
+
         document.getElementById('lottery-draw-time-create').value = data.settings.drawTime || '';
         this._lotterySettings = data.settings;
         this._tempFormFields = data.settings.formFields || [
@@ -2114,7 +2261,7 @@ class AdminPanel {
   addFormField() {
     const field = { id: 'field_' + Date.now(), label: '新字段', type: 'text', required: false, placeholder: '' };
     const modal = this.createModal('添加字段',
-      '<div class="form-group"><label>字段ID（英文，唯一）</label><input type="text" id="ff-id" value="' + field.id + '" style="width:100%;padding:8px;"></div>' +
+      '<div class="form-group"><label>字段ID(英文,唯一)</label><input type="text" id="ff-id" value="' + field.id + '" style="width:100%;padding:8px;"></div>' +
       '<div class="form-group"><label>显示标签</label><input type="text" id="ff-label" value="' + field.label + '" style="width:100%;padding:8px;"></div>' +
       '<div class="form-group"><label>输入类型</label><select id="ff-type" style="width:100%;padding:8px;"><option value="text">文本</option><option value="tel">手机号</option><option value="email">邮箱</option><option value="number">数字</option></select></div>' +
       '<div class="form-group"><label>占位提示</label><input type="text" id="ff-placeholder" value="" placeholder="请输入占位提示" style="width:100%;padding:8px;"></div>' +
@@ -2129,7 +2276,7 @@ class AdminPanel {
     const field = fields[index];
     if (!field) return;
     const modal = this.createModal('编辑字段',
-      '<div class="form-group"><label>字段ID（英文，唯一）</label><input type="text" id="ff-id" value="' + field.id + '" style="width:100%;padding:8px;"></div>' +
+      '<div class="form-group"><label>字段ID(英文,唯一)</label><input type="text" id="ff-id" value="' + field.id + '" style="width:100%;padding:8px;"></div>' +
       '<div class="form-group"><label>显示标签</label><input type="text" id="ff-label" value="' + field.label + '" style="width:100%;padding:8px;"></div>' +
       '<div class="form-group"><label>输入类型</label><select id="ff-type" style="width:100%;padding:8px;"><option value="text"' + (field.type==='text'?' selected':'') + '>文本</option><option value="tel"' + (field.type==='tel'?' selected':'') + '>手机号</option><option value="email"' + (field.type==='email'?' selected':'') + '>邮箱</option><option value="number"' + (field.type==='number'?' selected':'') + '>数字</option></select></div>' +
       '<div class="form-group"><label>占位提示</label><input type="text" id="ff-placeholder" value="' + (field.placeholder||'') + '" placeholder="请输入占位提示" style="width:100%;padding:8px;"></div>' +
@@ -2169,7 +2316,7 @@ class AdminPanel {
   }
 
   deleteFormField(index) {
-    if (!confirm('确定删除这个字段？')) return;
+    if (!confirm('确定删除这个字段?')) return;
     const fields = this._tempFormFields || [];
     fields.splice(index, 1);
     this._tempFormFields = fields;
@@ -2219,13 +2366,13 @@ class AdminPanel {
     this._tempPrize = prize;
     const modal = this.createModal('添加奖品',
       '<div class="form-group"><label>奖品名称</label><input type="text" id="pn-name" value="新奖品"></div>' +
-      '<div class="form-group"><label>图标</label><input type="text" id="pn-icon" value="🎁" placeholder="如：🏆"></div>' +
-      '<div class="form-group"><label>奖品内容</label><textarea id="pn-content" rows="2" placeholder="如：价值299元滑雪体验课一节"></textarea></div>' +
-      '<div class="form-group"><label>使用规则</label><textarea id="pn-rules" rows="3" placeholder="如：需提前预约，不与其他优惠同用"></textarea></div>' +
+      '<div class="form-group"><label>图标</label><input type="text" id="pn-icon" value="🎁" placeholder="如:🏆"></div>' +
+      '<div class="form-group"><label>奖品内容</label><textarea id="pn-content" rows="2" placeholder="如:价值299元滑雪体验课一节"></textarea></div>' +
+      '<div class="form-group"><label>使用规则</label><textarea id="pn-rules" rows="3" placeholder="如:需提前预约,不与其他优惠同用"></textarea></div>' +
       '<div class="form-group"><label>有效期截止</label><input type="date" id="pn-expire" value=""><p style="color:#666;font-size:0.85rem;margin-top:4px;">💡 不设置则永久有效</p></div>' +
       '<div class="form-group"><label>描述</label><input type="text" id="pn-desc" value=""></div>' +
       '<div class="form-group"><label>价值/优惠</label><input type="text" id="pn-value" value=""></div>' +
-      '<div class="form-group"><label>中奖概率 (0-1，如0.1表示10%)</label><input type="number" id="pn-prob" value="0.1" step="0.01" min="0" max="1"></div>' +
+      '<div class="form-group"><label>中奖概率 (0-1,如0.1表示10%)</label><input type="number" id="pn-prob" value="0.1" step="0.01" min="0" max="1"></div>' +
       '<div class="form-group"><label>总数量</label><input type="number" id="pn-total" value="10" min="1"></div>' +
       '<div style="margin-top:20px;"><button class="btn btn-primary" onclick="admin.saveNewPrizeNew()">保存</button> <button class="btn btn-secondary" onclick="admin.closeModal()">取消</button></div>'
     );
@@ -2266,8 +2413,8 @@ class AdminPanel {
         '<option value="5"' + (prize.level===5?' selected':'') + '>五等奖</option>' +
       '</select></div>' +
       '<div class="form-group"><label>图标</label><input type="text" id="pe-icon" value="' + (prize.icon||'') + '"></div>' +
-      '<div class="form-group"><label>奖品内容</label><textarea id="pe-content" rows="2" placeholder="如：价值299元滑雪体验课一节">' + (prize.content||'') + '</textarea></div>' +
-      '<div class="form-group"><label>使用规则</label><textarea id="pe-rules" rows="3" placeholder="如：需提前预约，不与其他优惠同用">' + (prize.rules||'') + '</textarea></div>' +
+      '<div class="form-group"><label>奖品内容</label><textarea id="pe-content" rows="2" placeholder="如:价值299元滑雪体验课一节">' + (prize.content||'') + '</textarea></div>' +
+      '<div class="form-group"><label>使用规则</label><textarea id="pe-rules" rows="3" placeholder="如:需提前预约,不与其他优惠同用">' + (prize.rules||'') + '</textarea></div>' +
       '<div class="form-group"><label>有效期截止</label><input type="date" id="pe-expire" value="' + (prize.expireDate||'') + '"><p style="color:#666;font-size:0.85rem;margin-top:4px;">💡 不设置则永久有效</p></div>' +
       '<div class="form-group"><label>描述</label><input type="text" id="pe-desc" value="' + (prize.description||'') + '"></div>' +
       '<div class="form-group"><label>价值/优惠</label><input type="text" id="pe-value" value="' + (prize.value||'') + '"></div>' +
@@ -2301,14 +2448,14 @@ class AdminPanel {
     prize.total = parseInt(document.getElementById('pe-total').value) || 0;
     prize.expireDate = document.getElementById('pe-expire').value || '';
     console.log('保存后probability:', prize.probability);
-    alert('保存成功！概率=' + prize.probability);
+    alert('保存成功!概率=' + prize.probability);
     this._tempPrizes = prizes;
     this.closeModal();
     this.renderPrizesListNew(prizes);
   }
 
   deletePrizeNew(index) {
-    if (!confirm('确定删除此奖品？')) return;
+    if (!confirm('确定删除此奖品?')) return;
     const prizes = this._tempPrizes || [];
     prizes.splice(index, 1);
     this._tempPrizes = prizes;
@@ -2331,21 +2478,21 @@ class AdminPanel {
     if (!container) return;
     var settings = this._lotterySettings || {};
     var guaranteed = settings.guaranteedPrizes || [];
-    
+
     if (guaranteed.length === 0) {
-      container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无可必出的奖品，请点击下方按钮添加</p>';
+      container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">暂无可必出的奖品,请点击下方按钮添加</p>';
       return;
     }
-    
+
     var levelNames = {1:'一等奖', 2:'二等奖', 3:'三等奖', 4:'四等奖', 5:'五等奖'};
     var self = this;
-    
-    container.innerHTML = '<p style="color:#666;font-size:0.85rem;margin-bottom:12px;">💡 拖拽左侧手柄可排序，顺序决定优先级（先抽优先级高的）</p><div id="guaranteed-drag-list" style="display:grid;gap:12px;">';
+
+    container.innerHTML = '<p style="color:#666;font-size:0.85rem;margin-bottom:12px;">💡 拖拽左侧手柄可排序,顺序决定优先级(先抽优先级高的)</p><div id="guaranteed-drag-list" style="display:grid;gap:12px;">';
     guaranteed.forEach(function(gp, i) {
       var p = self._tempPrizes ? self._tempPrizes.find(function(pr){ return pr.id === gp.prizeId; }) : null;
       if (!p) return;
       var maxCount = gp.maxCount !== undefined ? gp.maxCount : gp.count;
-      document.getElementById('guaranteed-drag-list').innerHTML += 
+      document.getElementById('guaranteed-drag-list').innerHTML +=
         '<div class="guaranteed-drag-item" draggable="true" data-guaranteed-idx="' + i + '" style="display:flex;align-items:center;gap:12px;padding:12px;background:white;border-radius:8px;border-left:4px solid #28a745;cursor:move;" ondragstart="admin.dragGuaranteedStart(event)" ondragover="admin.dragGuaranteedOver(event)" ondrop="admin.dragGuaranteedDrop(event)" ondragend="admin.dragGuaranteedEnd(event)">' +
           '<span style="color:#999;cursor:move;font-size:1.2rem;">☰</span>' +
           '<span style="background:#3b82f6;color:white;padding:4px 10px;border-radius:4px;font-size:0.85rem;font-weight:bold;">' + (i+1) + '</span>' +
@@ -2404,14 +2551,14 @@ class AdminPanel {
     var guaranteed = settings.guaranteedPrizes || [];
     var alreadyAdded = guaranteed.map(function(gp){ return gp.prizeId; });
     var available = prizes.filter(function(p){ return alreadyAdded.indexOf(p.id) === -1 && (p.remain||0) > 0; });
-    
+
     if (available.length === 0) {
       this.showToast('所有奖品已添加到必出列表', 'error');
       return;
     }
-    
+
     var levelNames = {1:'一等奖', 2:'二等奖', 3:'三等奖', 4:'四等奖', 5:'五等奖'};
-    var html = '<p style="margin-bottom:16px;color:#666;">选择要添加到必出列表的奖品：</p>';
+    var html = '<p style="margin-bottom:16px;color:#666;">选择要添加到必出列表的奖品:</p>';
     var self = this;
     available.forEach(function(p) {
       html += '<label style="display:flex;align-items:center;gap:10px;padding:10px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;cursor:pointer;">' +
@@ -2421,16 +2568,16 @@ class AdminPanel {
         '<span style="background:#9333EA;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem;">' + (levelNames[p.level]||'其他') + '</span>' +
         '</label>';
     });
-    
+
     html += '<div style="margin-top:16px;">';
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">';
     html += '<div class="form-group"><label>必出数量</label><input type="number" id="guaranteed-new-count" value="1" min="0" max="100" style="width:100%;padding:8px;border:2px solid var(--ice-blue);border-radius:8px;"></div>';
     html += '<div class="form-group"><label>最多出</label><input type="number" id="guaranteed-new-max" value="1" min="1" max="100" style="width:100%;padding:8px;border:2px solid var(--ice-blue);border-radius:8px;"></div>';
     html += '</div>';
-    html += '<p style="color:#666;font-size:0.85rem;margin-top:8px;">必出=每次开奖必定抽出，最多出=该奖品最多能抽出几个</p>';
+    html += '<p style="color:#666;font-size:0.85rem;margin-top:8px;">必出=每次开奖必定抽出,最多出=该奖品最多能抽出几个</p>';
     html += '<button onclick="admin.saveAddToGuaranteed()" class="btn btn-primary" style="margin-top:12px;">确认添加</button>';
     html += '</div>';
-    
+
     var modal = this.createModal('添加必出奖品', html);
     document.body.appendChild(modal);
   }
@@ -2443,10 +2590,10 @@ class AdminPanel {
       this.showToast('请选择至少一个奖品', 'error');
       return;
     }
-    
+
     var settings = this._lotterySettings || {};
     if (!settings.guaranteedPrizes) settings.guaranteedPrizes = [];
-    
+
     var self = this;
     checkboxes.forEach(function(cb) {
       var prizeId = parseInt(cb.value);
@@ -2462,7 +2609,7 @@ class AdminPanel {
         });
       }
     });
-    
+
     this._lotterySettings = settings;
     this.closeModal();
     this.renderGuaranteedPrizesList();
@@ -2519,7 +2666,7 @@ class AdminPanel {
       });
       const result = await res.json();
       if (result.success) {
-        this.showToast('抽奖设置已保存！', 'success');
+        this.showToast('抽奖设置已保存!', 'success');
       } else {
         this.showToast('保存失败: ' + result.error, 'error');
       }
@@ -2531,7 +2678,7 @@ class AdminPanel {
     if (!container) return;
     container.innerHTML = '<p style="color:var(--text-light);">加载中...</p>';
     try {
-      // 同时获取抽奖记录和设置（奖品信息）
+      // 同时获取抽奖记录和设置(奖品信息)
       const [recordsRes, settingsRes] = await Promise.all([
         fetch('/api/lottery/records'),
         fetch('/api/lottery/settings')
@@ -2539,7 +2686,7 @@ class AdminPanel {
       const data = await recordsRes.json();
       const settings = await settingsRes.json();
       const prizes = settings.prizes || [];
-      
+
       if (data.success && data.records && data.records.length > 0) {
         let html = '<table class="records-table"><tr><th>序号</th><th>时间</th><th>姓名</th><th>手机</th><th>中奖结果</th><th>操作</th></tr>';
         data.records.slice().reverse().forEach(function(r, i) {
@@ -2569,7 +2716,7 @@ class AdminPanel {
   }
 
   async deleteLotteryRecord(index) {
-    if (!confirm('确定删除这条抽奖记录？')) return;
+    if (!confirm('确定删除这条抽奖记录?')) return;
     try {
       const res = await fetch('/api/lottery/record/' + index, { method: 'DELETE' });
       const data = await res.json();
@@ -2631,7 +2778,7 @@ class AdminPanel {
     if (!container) return;
     container.innerHTML = '<p style="color:var(--text-light);">加载中...</p>';
     try {
-      // 同时获取历史记录和设置（奖品信息）
+      // 同时获取历史记录和设置(奖品信息)
       const [historyRes, settingsRes] = await Promise.all([
         fetch('/api/lottery/history'),
         fetch('/api/lottery/settings')
@@ -2639,7 +2786,7 @@ class AdminPanel {
       const data = await historyRes.json();
       const settings = await settingsRes.json();
       const prizes = settings.prizes || [];
-      
+
       if (data.success && data.history && data.history.length > 0) {
         let html = '<table class="records-table"><tr><th>序号</th><th>时间</th><th>姓名</th><th>手机</th><th>中奖结果</th><th>说明</th></tr>';
         data.history.forEach(function(r, i) {
@@ -2728,7 +2875,7 @@ class AdminPanel {
       });
       const data = await res.json();
       if (data.success) {
-        this.showToast('账号创建成功！', 'success');
+        this.showToast('账号创建成功!', 'success');
         this.resetCreateAccountForm();
       } else {
         this.showToast(data.error || '创建失败', 'error');
@@ -2758,8 +2905,8 @@ class AdminPanel {
       if (data.success) {
         const users = data.users;
         // 过滤掉test条目和超级管理员
-        const filtered = Object.entries(users).filter(function(entry) { 
-          return entry[0] !== '18003411633' && entry[0] !== 'test' && typeof entry[1] === 'object'; 
+        const filtered = Object.entries(users).filter(function(entry) {
+          return entry[0] !== '18003411633' && entry[0] !== 'test' && typeof entry[1] === 'object';
         });
         this._allUsers = users; // 保存用户数据
         if (filtered.length === 0) {
@@ -2792,7 +2939,7 @@ class AdminPanel {
           html += '</div></div>';
         });
         container.innerHTML = html;
-        
+
         // 事件委托处理账号按钮点击
         container.onclick = function(e) {
           var btn = e.target.closest('button[data-phone]');
@@ -2813,7 +2960,7 @@ class AdminPanel {
             self.configurePermissions(phone);
           }
         };
-        
+
         this._allUsers = users;
       }
     } catch (e) { container.innerHTML = '<p style="color:red;">加载失败: ' + e.message + '</p>'; }
@@ -2858,7 +3005,7 @@ class AdminPanel {
     const modal = this.createModal('编辑账号',
       '<div class="form-group"><label>姓名</label><input type="text" id="edit-acc-name" value="' + (user.name||'') + '"></div>' +
       '<div class="form-group"><label>手机号</label><input type="text" id="edit-acc-phone" value="' + phone + '" style="width:100%;padding:8px;border:2px solid var(--ice-blue);border-radius:8px;"></div>' +
-      '<div class="form-group"><label>新密码（留空则不修改）</label><div style="display:flex;gap:8px;"><input type="password" id="edit-acc-pwd" placeholder="输入新密码" style="flex:1;"><button type="button" class="pwd-toggle" onclick="admin.togglePasswordVisibility(\'edit-acc-pwd\', this)">👁️</button></div></div>' +
+      '<div class="form-group"><label>新密码(留空则不修改)</label><div style="display:flex;gap:8px;"><input type="password" id="edit-acc-pwd" placeholder="输入新密码" style="flex:1;"><button type="button" class="pwd-toggle" onclick="admin.togglePasswordVisibility(\'edit-acc-pwd\', this)">👁️</button></div></div>' +
       '<div class="form-group"><label>角色</label><select id="edit-acc-role" style="width:100%;padding:10px;border:2px solid var(--ice-blue);border-radius:8px;">' +
         '<option value="user"' + (user.role==='user'?' selected':'') + '>普通用户</option>' +
         '<option value="admin"' + (user.role==='admin'?' selected':'') + '>普通管理员</option>' +
@@ -2875,12 +3022,12 @@ class AdminPanel {
     const name = document.getElementById('edit-acc-name').value.trim();
     const password = document.getElementById('edit-acc-pwd').value;
     const role = document.getElementById('edit-acc-role').value;
-    
+
     if (!newPhone || !/^1[3-9]\d{9}$/.test(newPhone)) {
       this.showToast('请输入正确的手机号', 'error');
       return;
     }
-    
+
     try {
       const res = await fetch('/api/update-user', {
         method: 'POST',
@@ -2898,7 +3045,7 @@ class AdminPanel {
 
   async deleteAccount(phone) {
     console.log('deleteAccount called with phone:', phone);
-    if (!confirm('确定删除账号 ' + phone + '？此操作不可恢复。')) return;
+    if (!confirm('确定删除账号 ' + phone + '?此操作不可恢复。')) return;
     try {
       const res = await fetch('/api/delete-user/' + phone, { method: 'DELETE' });
       const data = await res.json();
@@ -2973,28 +3120,28 @@ class AdminPanel {
   // ==================== 权限应用 ====================
   applyPermissions(userRole, userPerms) {
     if (userRole === 'superadmin') return;
-    
+
     const perms = userPerms || {};
     console.log('applyPermissions called:', { role: userRole, perms: perms });
-    
-    // 隐藏子菜单中的按钮（使用#xxx-subtabs来限定范围）
+
+    // 隐藏子菜单中的按钮(使用#xxx-subtabs来限定范围)
     const hideSubMenu = function(subtabsId, dataTab) {
       var el = document.querySelector('#' + subtabsId + ' [data-tab="' + dataTab + '"]');
       if (el) { el.style.display = 'none'; console.log('隐藏子菜单:', subtabsId, dataTab); }
     };
-    
+
     // 隐藏父级菜单按钮
     const hideParentMenu = function(dataTab) {
       var el = document.querySelector('.admin-tabs [data-tab="' + dataTab + '"]');
       if (el) { el.style.display = 'none'; console.log('隐藏父级菜单:', dataTab); }
     };
-    
+
     // 隐藏子菜单容器
     const hideSubtabs = function(subtabsId) {
       var el = document.getElementById(subtabsId);
       if (el) { el.style.display = 'none'; console.log('隐藏子菜单容器:', subtabsId); }
     };
-    
+
     // ===== 如何报课 section =====
     var applyVisible = 0;
     if (perms.quiz !== false) { applyVisible++; } else { hideSubMenu('apply-subtabs', 'apply'); }
@@ -3007,7 +3154,7 @@ class AdminPanel {
       hideParentMenu('apply');
       hideSubtabs('apply-subtabs');
     }
-    
+
     // ===== 抽奖活动 section =====
     var lotteryVisible = 0;
     if (perms.lotteryCreate !== false) { lotteryVisible++; } else { hideSubMenu('lottery-subtabs', 'lottery-create'); }
@@ -3018,7 +3165,7 @@ class AdminPanel {
       hideParentMenu('lottery');
       hideSubtabs('lottery-subtabs');
     }
-    
+
     // ===== 账号管理 section =====
     var accVisible = 0;
     if (perms.createAccount !== false) { accVisible++; } else { hideSubMenu('accounts-subtabs', 'create-account'); }
@@ -3028,12 +3175,12 @@ class AdminPanel {
       hideParentMenu('accounts');
       hideSubtabs('accounts-subtabs');
     }
-    
+
     // ===== 其他主菜单 =====
     if (perms.home === false) hideParentMenu('home');
     if (perms.courses === false) hideParentMenu('courses');
-    
-    // 如果首页被隐藏，自动切换到第一个可见的菜单
+
+    // 如果首页被隐藏,自动切换到第一个可见的菜单
     setTimeout(function() {
       var firstMenu = document.querySelector('.admin-tab:not([style*="display: none"])');
       if (firstMenu) {
@@ -3066,7 +3213,7 @@ class AdminPanel {
         }
         let html = '<p style="margin-bottom:16px;">共 <strong>' + data.total + '</strong> 条提交记录</p>';
         html += '<table class="records-table" style="width:100%;border-collapse:collapse;"><tr style="background:#f5f5f5;"><th style="padding:12px;text-align:left;">序号</th><th style="padding:12px;text-align:left;">时间</th><th style="padding:12px;text-align:left;">填写内容</th><th style="padding:12px;text-align:left;">推荐课程</th><th style="padding:12px;text-align:left;">操作</th></tr>';
-        
+
         data.submissions.slice().reverse().forEach(function(s, i) {
           const answers = s.answers || {};
           // 提取所有答案的文本
@@ -3098,7 +3245,7 @@ class AdminPanel {
         });
         html += '</table>';
         container.innerHTML = html;
-        
+
         // 存储数据供详情使用
         this._quizSubmissions = data.submissions;
       } else { container.innerHTML = '<p style="color:red;">加载失败</p>'; }
@@ -3109,7 +3256,7 @@ class AdminPanel {
     const submissions = this._quizSubmissions;
     const submission = submissions[total - 1 - idx];
     if (!submission) return;
-    
+
     const answers = submission.answers || {};
     let details = [];
     for (let key in answers) {
@@ -3124,13 +3271,13 @@ class AdminPanel {
       }
       if (text) details.push('<div style="margin-bottom:8px;"><strong>' + key + ':</strong> ' + text + '</div>');
     }
-    
-    const modal = this.createModal('问卷详情', 
+
+    const modal = this.createModal('问卷详情',
       '<div style="max-height:400px;overflow-y:auto;">' +
       '<p style="color:#666;margin-bottom:16px;">提交时间: ' + new Date(submission.submittedAt).toLocaleString('zh-CN') + '</p>' +
-      '<h4 style="color:#0039A6;margin-bottom:12px;">填写内容：</h4>' +
+      '<h4 style="color:#0039A6;margin-bottom:12px;">填写内容:</h4>' +
       details.join('') +
-      '<h4 style="color:#0039A6;margin:16px 0 12px;">推荐课程：</h4>' +
+      '<h4 style="color:#0039A6;margin:16px 0 12px;">推荐课程:</h4>' +
       '<div>' + (submission.recommendedCourses||[]).map(function(c){ return '<span style="background:#f0f0f0;padding:4px 8px;border-radius:4px;margin:2px;display:inline-block;">' + c + '</span>'; }).join('') + '</div>' +
       '</div>' +
       '<div style="margin-top:20px;text-align:center;"><button class="btn btn-primary" onclick="admin.closeModal()">关闭</button></div>'
@@ -3165,12 +3312,12 @@ class AdminPanel {
   }
 
   async manualDraw() {
-    if (!confirm('确定立即开奖？此操作不可逆！')) return;
+    if (!confirm('确定立即开奖?此操作不可逆!')) return;
     try {
       const res = await fetch('/api/lottery/draw', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        this.showToast('开奖完成！共 ' + data.winners + ' 人中奖', 'success');
+        this.showToast('开奖完成!共 ' + data.winners + ' 人中奖', 'success');
         this.loadLotterySettings();
         this.loadLotteryRecords();
         this.loadLotteryHistory();
@@ -3190,7 +3337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (modal) {
     modal.classList.add('show');
   }
-  
+
   // 绑定登录按钮事件
   var btn = document.getElementById('login-submit-btn');
   if (btn) {

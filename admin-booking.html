@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>约课管理 - 龙城滑雪俱乐部</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--gradient-ice); min-height: 100vh; }
+    .admin-container { max-width: 1400px; margin: 0 auto; padding: 100px 40px 40px; }
+    
+    /* Header */
+    .admin-header { background: white; border-radius: var(--radius-md); padding: 24px 30px; margin-bottom: 30px; box-shadow: var(--shadow-soft); display: flex; justify-content: space-between; align-items: center; }
+    .admin-header h1 { font-size: 1.5rem; color: var(--text-dark); display: flex; align-items: center; gap: 10px; }
+    .admin-header .back-link { color: var(--primary-blue); text-decoration: none; font-size: 0.95rem; }
+    .admin-header .back-link:hover { text-decoration: underline; }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; background: white; padding: 8px; border-radius: var(--radius-md); box-shadow: var(--shadow-soft); }
+    .tab { padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 500; color: var(--text-medium); transition: var(--transition-smooth); border: none; background: transparent; font-size: 1rem; }
+    .tab:hover { background: var(--ice-blue); }
+    .tab.active { background: var(--primary-blue); color: white; }
+    
+    /* Card */
+    .card { background: white; border-radius: var(--radius-md); padding: 30px; box-shadow: var(--shadow-soft); margin-bottom: 24px; }
+    .card-title { font-size: 1.2rem; color: var(--text-dark); margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    
+    /* Table */
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--ice-blue); }
+    th { background: var(--ice-blue); color: var(--text-dark); font-weight: 600; font-size: 0.95rem; }
+    td { color: var(--text-medium); font-size: 0.9rem; }
+    tr:hover td { background: var(--frost); }
+    
+    /* Buttons */
+    .btn { padding: 10px 20px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: var(--transition-smooth); display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--primary-blue); color: white; }
+    .btn-primary:hover { background: var(--light-blue); }
+    .btn-secondary { background: var(--ice-blue); color: var(--text-dark); }
+    .btn-secondary:hover { background: #d0e4ff; }
+    .btn-danger { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+    
+    /* Form */
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 500; color: var(--text-dark); margin-bottom: 8px; font-size: 0.95rem; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--ice-blue); border-radius: var(--radius-sm); font-size: 1rem; transition: border-color 0.3s; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary-blue); }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-group .hint { font-size: 0.85rem; color: var(--text-light); margin-top: 6px; }
+    
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 22, 40, 0.6); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal.show { display: flex; }
+    .modal-content { background: white; border-radius: var(--radius-lg); width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; padding: 32px; position: relative; }
+    .modal-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 50%; background: var(--ice-blue); border: none; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+    .modal-close:hover { background: #d0e4ff; }
+    .modal h2 { font-size: 1.4rem; color: var(--text-dark); margin-bottom: 24px; }
+    
+    /* Search */
+    .search-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .search-bar input, .search-bar select { padding: 10px 16px; border: 2px solid var(--ice-blue); border-radius: var(--radius-sm); font-size: 0.95rem; }
+    .search-bar input { flex: 1; min-width: 200px; }
+    
+    /* Field List */
+    .field-list { border: 2px solid var(--ice-blue); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px; }
+    .field-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--frost); border-radius: var(--radius-sm); margin-bottom: 10px; transition: all 0.2s; }
+    .field-item:hover { background: var(--frost-hover); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .drag-item.dragging { opacity: 0.5; background: var(--gold); }
+    .field-item:last-child { margin-bottom: 0; }
+    .field-item .name { flex: 1; font-weight: 500; color: var(--text-dark); }
+    .field-item .type { color: var(--text-light); font-size: 0.85rem; }
+    .field-item .price { color: var(--gold); font-weight: 600; }
+    .field-item .actions { display: flex; gap: 8px; }
+    
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--text-light); }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">极运龙城×趣滑雪</div>
+      <ul class="nav-menu">
+        <li><a href="admin.html">管理后台</a></li>
+        <li><a href="admin-booking.html" class="active">约课管理</a></li>
+        <li><a href="index.html">返回首页</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+      <h1>📅 约课管理系统</h1>
+      <a href="admin.html" class="back-link">← 返回管理后台</a>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('courses')">课程管理</button>
+      <button class="tab" onclick="switchTab('records')">预约记录</button>
+      <button class="tab" onclick="switchTab('history')">历史课程</button>
+    </div>
+    
+    <!-- Course Management Tab -->
+    <div id="tab-courses">
+      <div class="card">
+        <div class="card-title">
+          课程列表
+          <button class="btn btn-primary" onclick="openCourseModal()" style="margin-left: auto;">
+            + 创建新课程
+          </button>
+        </div>
+        
+        <div class="search-bar">
+          <select id="filter-category" onchange="loadCourses()">
+            <option value="">全部分类</option>
+            <option value="cat_snow">❄️ 雪季训练</option>
+            <option value="cat_off">☀️ 非雪季训练</option>
+          </select>
+        </div>
+        
+        <div id="courseList">
+          <div class="loading">正在加载...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Records Tab -->
+    <div id="tab-records" style="display:none;">
+      <div class="card">
+        <div class="card-title">预约记录</div>
+        
+        <div class="search-bar">
+          <input type="date" id="search-date" onchange="loadRecords()">
+          <input type="text" id="search-name" placeholder="搜索学员姓名..." onkeyup="loadRecords()">
+          <button class="btn btn-secondary" onclick="loadRecords()">🔍 搜索</button>
+          <button class="btn btn-secondary" onclick="refreshRecords()" id="refreshBtn">🔄 刷新</button>
+        </div>
+        <div style="margin-top:15px;text-align:right;">
+          <button class="btn btn-primary" onclick="exportRecords()">📥 导出WPS表格</button>
+        </div>
+        
+        <div id="recordList">
+          <div class="loading">正在加载...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- History Courses Tab -->
+    <div id="tab-history" style="display:none;">
+      <div class="card">
+        <div class="card-title">历史课程（已停止）</div>
+        <div id="historyCourseList">
+          <div class="loading">正在加载...</div>
+        </div>
+      </div>
+    </div>
+  
+  <!-- Record Detail Modal -->
+  <div class="modal" id="recordDetailModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeRecordDetailModal()">×</button>
+      <h2>预约详情</h2>
+      <div id="recordDetailContent" style="margin-top:20px;"></div>
+    </div>
+  </div>
+  
+  <!-- Course Modal -->
+  <div class="modal" id="courseModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeCourseModal()">×</button>
+      <h2 id="courseModalTitle">创建课程</h2>
+      
+      <form id="courseForm">
+        <input type="hidden" id="course_id">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>所属分类 *</label>
+            <select id="course_category" required onchange="loadSubcategories()">
+              <option value="">请选择分类</option>
+              <option value="cat_snow">❄️ 雪季训练</option>
+              <option value="cat_off">☀️ 非雪季训练</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>子分类</label>
+            <select id="course_subcategory">
+              <option value="">请选择子分类</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>课程名称 *</label>
+          <input type="text" id="course_name" required placeholder="例如：单板入门课程">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>基础费用（元）</label>
+            <input type="number" id="course_price" value="0" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>课程时长</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" id="course_duration" min="1" placeholder="时长" style="width: 80px;">
+              <select id="course_duration_unit" style="width: 100px;">
+                <option value="小时">小时</option>
+                <option value="天">天</option>
+                <option value="半天">半天</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>课程开始日期</label>
+            <input type="datetime-local" id="course_start_date">
+          </div>
+          <div class="form-group">
+            <label>课程结束日期</label>
+            <input type="datetime-local" id="course_end_date">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>课程描述</label>
+          <textarea id="course_description" placeholder="请输入课程描述..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>课程封面图片</label>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <input type="text" id="course_cover" placeholder="图片地址（URL或上传后显示）" style="flex: 1;">
+            <label class="btn btn-secondary" style="cursor: pointer;">
+              上传图片
+              <input type="file" accept="image/*" id="course_cover_upload" style="display:none;" onchange="uploadCourseCover(this)">
+            </label>
+          </div>
+          <div id="coverPreview" style="margin-top: 10px; display: none;">
+            <img id="coverPreviewImg" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 2px solid var(--ice-blue);">
+          </div>
+        </div>
+        
+        <!-- Form Fields Section -->
+        <div class="card" style="background: var(--frost); margin: 20px 0;">
+          <div class="card-title" style="font-size: 1rem;">
+            表单字段配置
+            <button type="button" class="btn btn-secondary btn-sm" onclick="showFieldForm()" style="margin-left: auto;">+ 添加字段</button>
+          </div>
+          
+          <!-- Add Field Form -->
+          <div id="addFieldForm" style="display:none; padding: 16px; background: white; border-radius: 8px; margin-bottom: 16px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label>字段名称</label>
+                <input type="text" id="new_field_label" placeholder="例如：教练级别">
+              </div>
+              <div class="form-group">
+                <label>字段类型</label>
+                <select id="new_field_type" onchange="toggleFieldOptions()">
+                  <option value="text">单行文本</option>
+                  <option value="textarea">多行文本</option>
+                  <option value="select">下拉选择</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>额外费用（相加值）</label>
+                <input type="number" id="new_field_price" value="0" min="0" placeholder="0表示免费">
+              </div>
+              <div class="form-group">
+                <label>乘数（倍数）</label>
+                <input type="number" id="new_field_multiplier" value="1" min="0" step="0.1" placeholder="1表示不乘">
+                <div class="hint">如1.5表示费用×1.5倍</div>
+              </div>
+              <div class="form-group">
+                <label>是否必填</label>
+                <select id="new_field_required">
+                  <option value="0">否</option>
+                  <option value="1">是</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" id="fieldOptionsGroup" style="display:none;">
+              <label>选项列表（每项可设置相加值和乘数值）</label>
+              <div id="optionsList" style="margin-bottom:10px;"></div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addOptionRow()">+ 添加选项</button>
+              <div class="hint" style="margin-top:8px;">相加值：增加的费用（0表示免费）；乘数值：如1.5表示1.5倍</div>
+            </div>
+            <div class="form-group">
+              <label>显示条件（联动逻辑）</label>
+              <select id="new_field_condition_type" onchange="toggleConditionFields()">
+                <option value="">无条件（始终显示）</option>
+                <option value="depends_on">根据选择显示</option>
+              </select>
+            </div>
+            <div class="form-group" id="conditionFieldsGroup" style="display:none;">
+              <label>联动条件（所有条件都满足时显示）</label>
+              <div id="conditionList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addConditionRow()">+ 添加条件</button>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+              <button type="button" class="btn btn-secondary" onclick="hideFieldForm()">取消</button>
+              <button type="button" class="btn btn-primary" onclick="saveNewField()">添加</button>
+            </div>
+          </div>
+          
+          <div id="fieldList" class="field-list">
+            <div class="empty-state" style="padding: 20px;">暂无自定义字段</div>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeCourseModal()">取消</button>
+          <button type="submit" class="btn btn-primary">保存课程</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let categories = [];
+    let subcategories = [];
+    let courses = [];
+    let records = [];
+    let currentCourse = null;
+    let courseFields = [];
+    let deletedFieldIds = []; // Track deleted field IDs for removal on save
+    let currentUser = null;
+    let autoRefreshInterval = null;
+    
+    // Load current user from localStorage
+    function loadCurrentUser() {
+      try {
+        const userStr = localStorage.getItem('ski_user');
+        if (userStr) {
+          currentUser = JSON.parse(userStr);
+        }
+      } catch(e) {
+        currentUser = null;
+      }
+    }
+    
+    // Check if current user is superadmin
+    function isSuperAdmin() {
+      return currentUser && (currentUser.role === 'superadmin' || currentUser.isSuperAdmin);
+    }
+    
+    // Auto refresh records every 30 seconds
+    function startAutoRefresh() {
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+      autoRefreshInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          const activeTab = document.querySelector('.tab-btn.active');
+          if (activeTab && activeTab.dataset.tab === 'records') {
+            loadRecords();
+          }
+        }
+      }, 30000);
+    }
+    
+    // Init
+    document.addEventListener('DOMContentLoaded', init);
+    
+    async function init() {
+      await loadCurrentUser();
+      await loadCategories();
+      loadCourses();
+      startAutoRefresh();
+    }
+    
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/booking/categories');
+        const data = await res.json();
+        if (data.success) {
+          categories = data.categories;
+          subcategories = data.subcategories;
+        }
+      } catch (e) {
+        console.error('加载分类失败', e);
+      }
+    }
+    
+    function loadSubcategories(categoryId) {
+      const catId = categoryId || document.getElementById('course_category').value;
+      const subs = subcategories.filter(s => s.category_id === catId);
+      const select = document.getElementById('course_subcategory');
+      select.innerHTML = '<option value="">请选择子分类（可选）</option>' + 
+        subs.map(s => `<option value="${s.id}">${s.icon} ${s.name}</option>`).join('');
+    }
+    
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-courses').style.display = tab === 'courses' ? 'block' : 'none';
+      document.getElementById('tab-records').style.display = tab === 'records' ? 'block' : 'none';
+      document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
+      if (tab === 'records') loadRecords();
+      if (tab === 'history') loadHistoryCourses();
+    }
+    
+    async function loadCourses() {
+      deletedFieldIds = []; // Clear deleted field tracking when loading courses
+      const categoryId = document.getElementById('filter-category').value;
+      let url = '/api/booking/courses?enabled=';
+      if (categoryId) url += '&category_id=' + categoryId;
+      
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success) {
+          courses = data.courses;
+          renderCourses();
+        }
+      } catch (e) {
+        document.getElementById('courseList').innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败</p></div>';
+      }
+    }
+    
+    function renderCourses() {
+      if (courses.length === 0) {
+        document.getElementById('courseList').innerHTML = '<div class="empty-state"><div class="icon">📚</div><p>暂无课程，请点击创建新课程</p></div>';
+        return;
+      }
+      
+      const html = `
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>课程名称</th>
+                <th>所属分类</th>
+                <th>费用</th>
+                <th>时长</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${courses.map(course => {
+                const cat = categories.find(c => c.id === course.category_id) || {};
+                const isActive = course.status === 'active';
+                return `
+                  <tr>
+                    <td><strong>${course.name}</strong></td>
+                    <td>${cat.icon || ''} ${cat.name || ''}</td>
+                    <td style="color: var(--gold);">¥${course.price || 0}</td>
+                    <td>${course.duration || '-'}</td>
+                    <td>${isActive ? '<span style="color:green;">● 启用</span>' : '<span style="color:#999;">○ 停止</span>'}</td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm" onclick="editCourse('${course.id}')">编辑</button>
+                      ${isActive 
+                        ? `<button class="btn btn-warning btn-sm" onclick="toggleCourseStatus('${course.id}', 'stopped')">停止</button>`
+                        : `<button class="btn btn-success btn-sm" onclick="toggleCourseStatus('${course.id}', 'active')">启用</button>`
+                      }
+                      <button class="btn btn-danger btn-sm" onclick="deleteCourse('${course.id}')">删除</button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      document.getElementById('courseList').innerHTML = html;
+    }
+    
+    // Toggle course status (start/stop)
+    async function toggleCourseStatus(courseId, newStatus) {
+      try {
+        const res = await fetch('/api/booking/course/' + courseId, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(newStatus === 'active' ? '课程已启用' : '课程已停止');
+          loadCourses();
+        } else {
+          showToast(data.error || '操作失败');
+        }
+      } catch(e) {
+        showToast('操作失败');
+      }
+    }
+    
+    // Load stopped courses (history)
+    async function loadHistoryCourses() {
+      try {
+        const res = await fetch('/api/booking/admin/courses?status=stopped');
+        const data = await res.json();
+        if (data.success) {
+          renderHistoryCourses(data.courses);
+        }
+      } catch(e) {
+        document.getElementById('historyCourseList').innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败</p></div>';
+      }
+    }
+    
+    function renderHistoryCourses(courses) {
+      if (courses.length === 0) {
+        document.getElementById('historyCourseList').innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>暂无已停止的课程</p></div>';
+        return;
+      }
+      const html = `
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>课程名称</th>
+                <th>所属分类</th>
+                <th>费用</th>
+                <th>时长</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${courses.map(course => {
+                const cat = categories.find(c => c.id === course.category_id) || {};
+                return `
+                  <tr>
+                    <td><strong>${course.name}</strong></td>
+                    <td>${cat.icon || ''} ${cat.name || ''}</td>
+                    <td style="color: var(--gold);">¥${course.price || 0}</td>
+                    <td>${course.duration || '-'}</td>
+                    <td><span style="color:#999;">○ 停止</span></td>
+                    <td>
+                      <button class="btn btn-success btn-sm" onclick="toggleCourseStatus('${course.id}', 'active')">启用</button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteCourse('${course.id}')">删除</button>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      document.getElementById('historyCourseList').innerHTML = html;
+    }
+    
+    async function openCourseModal(courseId = null) {
+      currentCourse = null;
+      courseFields = [];
+      document.getElementById('courseForm').reset();
+      document.getElementById('course_id').value = '';
+      document.getElementById('courseModalTitle').textContent = '创建课程';
+      document.getElementById('fieldList').innerHTML = '<div class="empty-state" style="padding: 20px;">暂无自定义字段</div>';
+      
+      if (courseId) {
+        document.getElementById('courseModalTitle').textContent = '编辑课程';
+        const res = await fetch(`/api/booking/course/${courseId}`);
+        const data = await res.json();
+        if (data.success) {
+          currentCourse = data.course;
+          courseFields = data.fields || [];
+          fillCourseForm(currentCourse);
+        }
+      }
+      
+      document.getElementById('courseModal').classList.add('show');
+    }
+    
+    function fillCourseForm(course) {
+      document.getElementById('course_id').value = course.id;
+      document.getElementById('course_category').value = course.category_id || '';
+      loadSubcategories(course.category_id);
+      document.getElementById('course_subcategory').value = course.subcategory_id || '';
+      document.getElementById('course_name').value = course.name || '';
+      document.getElementById('course_price').value = course.price || 0;
+      
+      // Parse duration and unit
+      const duration = course.duration || '';
+      if (duration.includes('天')) {
+        document.getElementById('course_duration').value = parseInt(duration) || '';
+        document.getElementById('course_duration_unit').value = '天';
+      } else if (duration.includes('半天')) {
+        document.getElementById('course_duration').value = 1;
+        document.getElementById('course_duration_unit').value = '半天';
+      } else {
+        document.getElementById('course_duration').value = parseInt(duration) || '';
+        document.getElementById('course_duration_unit').value = '小时';
+      }
+      
+      // Convert date to datetime-local format (add T00:00 if only date provided)
+      var startDt = course.start_date || '';
+      var endDt = course.end_date || '';
+      if (startDt && !startDt.includes('T')) startDt += 'T00:00';
+      if (endDt && !endDt.includes('T')) endDt += 'T00:00';
+      document.getElementById('course_start_date').value = startDt;
+      document.getElementById('course_end_date').value = endDt;
+      document.getElementById('course_description').value = course.description || '';
+      document.getElementById('course_cover').value = course.cover_image || '';
+      if (course.cover_image) {
+        document.getElementById('coverPreviewImg').src = course.cover_image;
+        document.getElementById('coverPreview').style.display = 'block';
+      }
+      renderFields();
+    }
+    
+    function renderFields() {
+      if (courseFields.length === 0) {
+        document.getElementById('fieldList').innerHTML = '<div class="empty-state" style="padding: 20px;">暂无自定义字段</div>';
+        return;
+      }
+      
+      const html = courseFields.map((field, index) => `
+        <div class="field-item drag-item" draggable="true" data-index="${index}">
+          <div class="drag-handle" style="cursor:move;padding:0 10px;color:#999;" title="拖动排序">☰</div>
+          <div style="flex:1;">
+            <div class="name">${field.field_label}</div>
+            <div class="type">${field.field_type === 'select' ? '下拉选择' : field.field_type === 'textarea' ? '多行文本' : '单行文本'} ${field.required ? '（必填）' : ''}</div>
+          </div>
+          ${field.price > 0 ? '<div class="price">+¥' + field.price + '</div>' : ''}
+          <div class="actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="duplicateField(${index})" title="复制">复制</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="editField(${index})">编辑</button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeField(${index})">删除</button>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('fieldList').innerHTML = html;
+      
+      // Add drag and drop event listeners
+      setTimeout(initDragAndDrop, 100);
+    }
+    
+    function initDragAndDrop() {
+      const items = document.querySelectorAll('.drag-item');
+      items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+      });
+    }
+    
+    let draggedIndex = null;
+    
+    function handleDragStart(e) {
+      draggedIndex = parseInt(e.target.dataset.index);
+      e.target.style.opacity = '0.5';
+      e.dataTransfer.effectAllowed = 'move';
+    }
+    
+    function handleDragEnd(e) {
+      e.target.style.opacity = '1';
+      draggedIndex = null;
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      const dropIndex = parseInt(e.target.closest('.drag-item').dataset.index);
+      if (draggedIndex !== null && draggedIndex !== dropIndex) {
+        // Reorder array
+        const [removed] = courseFields.splice(draggedIndex, 1);
+        courseFields.splice(dropIndex, 0, removed);
+        renderFields();
+      }
+    }
+    
+    function duplicateField(index) {
+      const field = courseFields[index];
+      const newField = JSON.parse(JSON.stringify(field));
+      newField.id = 'field_' + Date.now();
+      newField.field_label = field.field_label + ' (副本)';
+      newField.field_name = field.field_name + '_copy';
+      // Insert after the original
+      courseFields.splice(index + 1, 0, newField);
+      renderFields();
+    }
+    
+    function showFieldForm() {
+      document.getElementById('addFieldForm').style.display = 'block';
+      document.getElementById('new_field_label').value = '';
+      document.getElementById('new_field_type').value = 'text';
+      document.getElementById('new_field_price').value = '0';
+      document.getElementById('new_field_multiplier').value = '1';
+      document.getElementById('new_field_required').value = '0';
+      window.fieldOptions = [];
+      document.getElementById('optionsList').innerHTML = '';
+      document.getElementById('fieldOptionsGroup').style.display = 'none';
+      document.getElementById('new_field_condition_type').value = '';
+      document.getElementById('conditionFieldsGroup').style.display = 'none';
+      document.getElementById('conditionList').innerHTML = '';
+      document.getElementById('addFieldForm').dataset.editIndex = '';
+      // Clear all condition rows
+      window.conditionRows = [];
+    }
+    
+    function hideFieldForm() {
+      document.getElementById('addFieldForm').style.display = 'none';
+      delete document.getElementById('addFieldForm').dataset.editIndex;
+      // Clear all inputs inside addFieldForm
+      var inputs = document.querySelectorAll('#addFieldForm input, #addFieldForm select, #addFieldForm textarea');
+      for (var i = 0; i < inputs.length; i++) {
+        var inp = inputs[i];
+        if (inp.type === 'number') inp.value = '0';
+        else if (inp.type === 'checkbox') inp.checked = false;
+        else inp.value = '';
+      }
+    }
+    
+    function toggleFieldOptions() {
+      const type = document.getElementById('new_field_type').value;
+      document.getElementById('fieldOptionsGroup').style.display = type === 'select' ? 'block' : 'none';
+      updateConditionOptions();
+      // Initialize options list if showing select type
+      if (type === 'select' && document.getElementById('optionsList').children.length === 0) {
+        addOptionRow();
+      }
+    }
+    
+    // Options list management
+    window.fieldOptions = [];
+    
+    function addOptionRow(name = '', price = 0, multiplier = 1) {
+      const optionsList = document.getElementById('optionsList');
+      const idx = window.fieldOptions.length;
+      window.fieldOptions.push({ name: name, price: price, multiplier: multiplier });
+      
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:8px;background:#f5f5f5;border-radius:6px;';
+      row.id = 'option_row_' + idx;
+      row.innerHTML = 
+        '<input type="text" id="opt_name_' + idx + '" value="' + name + '" placeholder="选项名称" style="flex:2;padding:8px;border:1px solid #ddd;border-radius:4px;">' +
+        '<input type="number" id="opt_price_' + idx + '" value="' + price + '" placeholder="相加值" style="width:70px;padding:8px;border:1px solid #ddd;border-radius:4px;">' +
+        '<input type="number" id="opt_mult_' + idx + '" value="' + multiplier + '" step="0.1" placeholder="乘数" style="width:60px;padding:8px;border:1px solid #ddd;border-radius:4px;">' +
+        '<span style="font-size:0.8rem;color:#666;">相加值</span>' +
+        '<span style="font-size:0.8rem;color:#666;margin-left:4px;">乘数</span>' +
+        '<button onclick="removeOptionRow(' + idx + ')" style="background:#ff4d4f;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;margin-left:4px;">×</button>';
+      optionsList.appendChild(row);
+      
+      // Add listeners to update the data
+      ['opt_name_' + idx, 'opt_price_' + idx, 'opt_mult_' + idx].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', function() {
+          updateOptionData(idx);
+        });
+      });
+    }
+    
+    function removeOptionRow(idx) {
+      delete window.fieldOptions[idx];
+      var row = document.getElementById('option_row_' + idx);
+      if (row) row.remove();
+    }
+    
+    function updateOptionData(idx) {
+      var name = document.getElementById('opt_name_' + idx);
+      var price = document.getElementById('opt_price_' + idx);
+      var mult = document.getElementById('opt_mult_' + idx);
+      if (name && price && mult) {
+        window.fieldOptions[idx] = {
+          name: name.value,
+          price: parseFloat(price.value) || 0,
+          multiplier: parseFloat(mult.value) || 1
+        };
+      }
+    }
+    
+    function getOptionsString() {
+      // Convert options array to format: option1:price:mult,option2:price:mult
+      var validOptions = window.fieldOptions.filter(function(o) { return o && o.name; });
+      return validOptions.map(function(o) {
+        if (o.price === 0 && o.multiplier === 1) return o.name;
+        if (o.price === 0 && o.multiplier !== 1) return o.name + '::' + o.multiplier;
+        if (o.multiplier === 1) return o.name + ':' + o.price;
+        return o.name + ':' + o.price + ':' + o.multiplier;
+      }).join(',');
+    }
+    
+    function loadOptionsFromString(optionsStr) {
+      // Parse options string and populate the UI
+      window.fieldOptions = [];
+      document.getElementById('optionsList').innerHTML = '';
+      if (!optionsStr) { addOptionRow(); return; }
+      var parts = optionsStr.split(',');
+      parts.forEach(function(p) {
+        if (!p.trim()) return;
+        var segs = p.trim().split(':');
+        var name = segs[0] || '';
+        var price = parseFloat(segs[1]) || 0;
+        var mult = parseFloat(segs[2]) || 1;
+        if (name) addOptionRow(name, price, mult);
+      });
+      if (window.fieldOptions.length === 0) addOptionRow();
+    }
+    
+    function toggleConditionFields() {
+      const type = document.getElementById('new_field_condition_type').value;
+      document.getElementById('conditionFieldsGroup').style.display = type === 'depends_on' ? 'block' : 'none';
+      updateConditionOptions();
+      console.log('toggleConditionFields:', type, 'courseFields count:', courseFields.length);
+    }
+    
+    function updateConditionOptions() {
+      // Just re-render if there are existing condition rows
+      if (window.conditionRows) {
+        window.conditionRows.forEach(row => updateConditionRowFields(row));
+      }
+    }
+    
+    function addConditionRow(fieldId = '', selectedValues = []) {
+      const conditionList = document.getElementById('conditionList');
+      const selectFields = courseFields.filter(f => f.field_type === 'select');
+      
+      const rowId = 'cond_' + Date.now();
+      const row = document.createElement('div');
+      row.id = rowId;
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px;background:#f5f5f5;border-radius:8px;';
+      
+      row.innerHTML = `
+        <select class="cond-field" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;" onchange="onConditionFieldChange('${rowId}')">
+          <option value="">选择字段...</option>
+          ${selectFields.map(f => `<option value="${f.id}">${f.field_label}</option>`).join('')}
+        </select>
+        <div class="cond-values" style="flex:2;display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <button type="button" onclick="this.parentElement.remove();removeConditionRow('${rowId}')" style="padding:8px 12px;background:#ff4444;color:white;border:none;border-radius:6px;cursor:pointer;">×</button>
+      `;
+      
+      conditionList.appendChild(row);
+      
+      if (!window.conditionRows) window.conditionRows = [];
+      const condRow = { id: rowId, fieldId: fieldId, values: selectedValues };
+      window.conditionRows.push(condRow);
+      
+      // If pre-selected, set values
+      if (fieldId) {
+        row.querySelector('.cond-field').value = fieldId;
+        updateConditionRowFields(condRow);
+        setTimeout(() => {
+          row.querySelectorAll('.cond-value-cb').forEach(cb => {
+            if (selectedValues.includes(cb.value)) {
+              cb.checked = true;
+              cb.parentElement.style.background = '#4CAF50';
+              cb.parentElement.style.borderColor = '#4CAF50';
+              cb.parentElement.style.color = '#fff';
+            }
+          });
+        }, 50);
+      }
+    }
+    
+    function removeConditionRow(rowId) {
+      if (window.conditionRows) {
+        window.conditionRows = window.conditionRows.filter(r => r.id !== rowId);
+      }
+    }
+    
+    function onConditionFieldChange(rowId) {
+      const row = document.getElementById(rowId);
+      const condRow = window.conditionRows.find(r => r.id === rowId);
+      if (!condRow) return;
+      
+      condRow.fieldId = row.querySelector('.cond-field').value;
+      condRow.values = [];
+      updateConditionRowFields(condRow);
+    }
+    
+    function updateConditionRowFields(condRow) {
+      const row = document.getElementById(condRow.id);
+      if (!row) return;
+      
+      const valuesDiv = row.querySelector('.cond-values');
+      const field = courseFields.find(f => f.id === condRow.fieldId);
+      
+      if (!field || !field.options) {
+        valuesDiv.innerHTML = '';
+        return;
+      }
+      
+      const options = field.options.split(',');
+      valuesDiv.innerHTML = options.map(opt => `
+        <label style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#fff;border:2px solid #ddd;border-radius:16px;cursor:pointer;font-size:0.9em;transition:all 0.2s;">
+          <input type="checkbox" class="cond-value-cb" value="${opt}" style="display:none;" onchange="onConditionValueChange('${condRow.id}',this)">
+          <span>${opt}</span>
+        </label>
+      `).join('');
+    }
+    
+    function onConditionValueChange(rowId, checkbox) {
+      const condRow = window.conditionRows.find(r => r.id === rowId);
+      if (!condRow) return;
+      
+      if (checkbox.checked) {
+        checkbox.parentElement.style.background = '#4CAF50';
+        checkbox.parentElement.style.borderColor = '#4CAF50';
+        checkbox.parentElement.style.color = '#fff';
+        if (!condRow.values.includes(checkbox.value)) {
+          condRow.values.push(checkbox.value);
+        }
+      } else {
+        checkbox.parentElement.style.background = '#fff';
+        checkbox.parentElement.style.borderColor = '#ddd';
+        checkbox.parentElement.style.color = '#333';
+        condRow.values = condRow.values.filter(v => v !== checkbox.value);
+      }
+    }
+    
+    function saveNewField() {
+      const label = document.getElementById('new_field_label').value.trim();
+      if (!label) {
+        alert('请输入字段名称');
+        return;
+      }
+      
+      const type = document.getElementById('new_field_type').value;
+      const price = parseFloat(document.getElementById('new_field_price').value) || 0;
+      const multiplier = parseFloat(document.getElementById('new_field_multiplier').value) || 1;
+      const required = document.getElementById('new_field_required').value === '1';
+      let options = '';
+      let optionPrices = {};
+      
+      if (type === 'select') {
+        // Get options from the interactive UI
+        const validOptions = window.fieldOptions.filter(function(o) { return o && o.name && o.name.trim(); });
+        if (validOptions.length === 0) {
+          alert('请至少添加一个选项');
+          return;
+        }
+        options = validOptions.map(function(o) { return o.name.trim(); }).join(',');
+        validOptions.forEach(function(o) {
+          if (o.price > 0 || o.multiplier !== 1) {
+            optionPrices[o.name.trim()] = { price: o.price, multiplier: o.multiplier };
+          }
+        });
+      }
+      
+      const editIndex = document.getElementById('addFieldForm').dataset.editIndex;
+      
+      // Handle condition - new multi-field format
+      let condition = null;
+      const condType = document.getElementById('new_field_condition_type').value;
+      if (condType === 'depends_on' && window.conditionRows) {
+        const conditions = [];
+        for (const row of window.conditionRows) {
+          if (row.fieldId && row.values.length > 0) {
+            conditions.push({ field: row.fieldId, values: row.values });
+          }
+        }
+        if (conditions.length > 0) {
+          condition = JSON.stringify({ conditions: conditions });
+        }
+      }
+      
+      const newField = {
+        id: editIndex !== undefined ? courseFields[editIndex].id : 'field_' + Date.now(),
+        field_name: label.toLowerCase().replace(/\s+/g, '_'),
+        field_label: label,
+        field_type: type,
+        price: price,
+        multiplier: multiplier,
+        option_prices: optionPrices,
+        required: required,
+        options: options,
+        condition: condition
+      };
+      
+      if (editIndex !== undefined && editIndex !== '') {
+        courseFields[editIndex] = newField;
+      } else {
+        courseFields.push(newField);
+      }
+      
+      delete document.getElementById('addFieldForm').dataset.editIndex;
+      hideFieldForm();
+      renderFields();
+    }
+    
+    function editField(index) {
+      const field = courseFields[index];
+      document.getElementById('new_field_label').value = field.field_label || '';
+      document.getElementById('new_field_type').value = field.field_type || 'text';
+      document.getElementById('new_field_price').value = field.price || 0;
+      document.getElementById('new_field_multiplier').value = field.multiplier || 1;
+      document.getElementById('new_field_required').value = field.required ? '1' : '0';
+      
+      // Parse option_prices - handle both JSON string and object
+      let optionPricesData = field.option_prices;
+      if (typeof optionPricesData === 'string') {
+        try {
+          optionPricesData = JSON.parse(optionPricesData);
+        } catch(e) {
+          optionPricesData = {};
+        }
+      }
+      optionPricesData = optionPricesData || {};
+      
+      // Build options string with prices and multipliers
+      let optionsStr = field.options || '';
+      if (field.options && Object.keys(optionPricesData).length > 0) {
+        const optionList = field.options.split(',');
+        const displayParts = [];
+        for (const opt of optionList) {
+          const data = optionPricesData[opt];
+          if (data && typeof data === 'object') {
+            const price = data.price || 0;
+            const mult = data.multiplier || 1;
+            if (price > 0 || mult !== 1) {
+              displayParts.push(price > 0 && mult !== 1 ? `${opt}:${price}:${mult}` : (price > 0 ? `${opt}:${price}` : `${opt}::${mult}`));
+            } else {
+              displayParts.push(opt);
+            }
+          } else if (data) {
+            displayParts.push(`${opt}:${data}`);
+          } else {
+            displayParts.push(opt);
+          }
+        }
+        optionsStr = displayParts.join(',');
+      }
+      // Load options into the interactive UI
+      loadOptionsFromString(optionsStr);
+      document.getElementById('fieldOptionsGroup').style.display = field.field_type === 'select' ? 'block' : 'none';
+      
+      // Parse and set condition - new JSON format
+      let condType = '';
+      window.conditionRows = [];
+      document.getElementById('conditionList').innerHTML = ''; // Clear old rows from DOM
+      if (field.condition) {
+        try {
+          const condData = typeof field.condition === 'string' ? JSON.parse(field.condition) : field.condition;
+          if (condData.conditions && condData.conditions.length > 0) {
+            condType = 'depends_on';
+            condData.conditions.forEach(c => {
+              addConditionRow(c.field, c.values);
+            });
+          }
+        } catch(e) {
+          console.log('Parse condition error:', e);
+        }
+      }
+      document.getElementById('new_field_condition_type').value = condType;
+      document.getElementById('conditionFieldsGroup').style.display = condType === 'depends_on' ? 'block' : 'none';
+      
+      // Store original index for update
+      document.getElementById('addFieldForm').dataset.editIndex = index;
+      document.getElementById('addFieldForm').style.display = 'block';
+      document.getElementById('addFieldForm').scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function removeField(index) {
+      if (confirm('确定删除该字段？')) {
+        const field = courseFields[index];
+        if (field && field.id) {
+          deletedFieldIds.push(field.id);
+        }
+        courseFields.splice(index, 1);
+        renderFields();
+      }
+    }
+    
+    // Upload course cover image
+    async function uploadCourseCover(input) {
+      const file = input.files[0];
+      if (!file) return;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const res = await fetch('/api/upload/cover', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+          document.getElementById('course_cover').value = data.url;
+          document.getElementById('coverPreviewImg').src = data.url;
+          document.getElementById('coverPreview').style.display = 'block';
+        } else {
+          alert(data.error || '上传失败');
+        }
+      } catch (e) {
+        alert('上传失败，请重试');
+      }
+    }
+    
+    function closeCourseModal() {
+      document.getElementById('courseModal').classList.remove('show');
+    }
+    
+    document.getElementById('courseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const course = {
+        id: document.getElementById('course_id').value || 'course_' + Date.now(),
+        category_id: document.getElementById('course_category').value,
+        subcategory_id: document.getElementById('course_subcategory').value,
+        name: document.getElementById('course_name').value,
+        price: parseFloat(document.getElementById('course_price').value) || 0,
+        duration: document.getElementById('course_duration').value + document.getElementById('course_duration_unit').value,
+        start_date: document.getElementById('course_start_date').value,
+        end_date: document.getElementById('course_end_date').value,
+        description: document.getElementById('course_description').value,
+        cover_image: document.getElementById('course_cover').value,
+        enabled: true
+      };
+      
+      try {
+        const res = await fetch('/api/booking/course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(course)
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          // Delete removed fields first
+          for (const fieldId of deletedFieldIds) {
+            const r = await fetch(`/api/booking/field/${fieldId}`, { method: 'DELETE' });
+          }
+          deletedFieldIds = []; // Clear after saving
+          
+          // Save fields with updated sort_order based on array index
+          for (let i = 0; i < courseFields.length; i++) {
+            const field = courseFields[i];
+            field.course_id = course.id;
+            field.sort_order = i; // Save the order based on array position
+            await fetch('/api/booking/field', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(field)
+            });
+          }
+          
+          alert('保存成功！');
+          closeCourseModal();
+          loadCourses();
+        } else {
+          alert(data.error || '保存失败');
+        }
+      } catch (e) {
+        alert('保存失败');
+      }
+    });
+    
+    async function editCourse(id) {
+      openCourseModal(id);
+    }
+    
+    async function deleteCourse(id) {
+      if (!confirm('确定删除该课程？相关字段也会被删除！')) return;
+      
+      try {
+        const res = await fetch(`/api/booking/course/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('删除成功');
+          loadCourses();
+        } else {
+          alert(data.error || '删除失败');
+        }
+      } catch (e) {
+        alert('删除失败');
+      }
+    }
+    
+    // Manual refresh
+    function refreshRecords() {
+      var btn = document.getElementById('refreshBtn');
+      if (btn) {
+        btn.innerHTML = '⏳ 刷新中...';
+        btn.disabled = true;
+      }
+      loadRecords().then(function() {
+        if (btn) {
+          btn.innerHTML = '🔄 刷新';
+          btn.disabled = false;
+        }
+      });
+    }
+    
+    // Records
+    async function loadRecords() {
+      const date = document.getElementById('search-date').value;
+      const name = document.getElementById('search-name').value;
+      
+      let url = '/api/booking/records?limit=100';
+      if (date) url += '&booking_date=' + date;
+      if (name) url += '&student_name=' + name;
+      
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success) {
+          records = data.records;
+          renderRecords();
+        }
+      } catch (e) {
+        document.getElementById('recordList').innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败</p></div>';
+      }
+    }
+    
+    function renderRecords() {
+      if (records.length === 0) {
+        document.getElementById('recordList').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>暂无预约记录</p></div>';
+        return;
+      }
+      
+      const isAdmin = isSuperAdmin();
+      
+      const html = `
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>学员姓名</th>
+                <th>联系电话</th>
+                <th>课程</th>
+                <th>预约日期</th>
+                <th>费用</th>
+                <th>状态</th>
+                <th>报名时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map(r => `
+                <tr>
+                  <td><strong>${r.student_name || '-'}</strong></td>
+                  <td>${r.phone || '-'}</td>
+                  <td>${r.course_name}</td>
+                  <td>${r.booking_date || '-'}</td>
+                  <td style="color: var(--gold);">¥${r.total_price || 0}</td>
+                  <td><span style="color:green;">${r.status === 'pending' ? '待确认' : r.status === 'confirmed' ? '已确认' : r.status === 'cancelled' ? '已取消' : r.status}</span></td>
+                  <td style="font-size:0.85rem;color:var(--text-light);">${new Date(r.created_at).toLocaleString('zh-CN')}</td>
+                  <td>
+                    <button class="btn btn-secondary btn-sm" onclick="viewRecordDetail('${r.id}')">详情</button>
+                    ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="editRecord('${r.id}')">编辑</button><button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">删除</button>` : ''}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      document.getElementById('recordList').innerHTML = html;
+    }
+    
+    // View record detail
+    async function viewRecordDetail(id) {
+      const record = records.find(r => r.id === id);
+      if (!record) return;
+      
+      // Parse form_data if it's a string
+      let formData = record.form_data;
+      if (typeof formData === 'string') {
+        try { formData = JSON.parse(formData); } catch(e) { formData = {}; }
+      }
+      
+      // Get field config for this course
+      let fieldConfig = {};
+      try {
+        const res = await fetch('/api/booking/course/' + record.course_id);
+        const data = await res.json();
+        if (data.success && data.fields) {
+          data.fields.forEach(f => {
+            fieldConfig[f.id] = f;
+          });
+        }
+      } catch(e) {}
+      
+      // Build detail HTML
+      let html = '<div style="padding:10px;">';
+      html += '<p style="margin:8px 0;"><strong>学员姓名：</strong>' + (record.student_name || '-') + '</p>';
+      html += '<p style="margin:8px 0;"><strong>联系电话：</strong>' + (record.phone || '-') + '</p>';
+      html += '<p style="margin:8px 0;"><strong>课程：</strong>' + (record.course_name || '-') + '</p>';
+      html += '<p style="margin:8px 0;"><strong>总费用：</strong>¥' + (record.total_price || 0) + '</p>';
+      html += '<p style="margin:8px 0;"><strong>状态：</strong>' + (record.status === 'pending' ? '待确认' : record.status === 'confirmed' ? '已确认' : record.status === 'cancelled' ? '已取消' : record.status) + '</p>';
+      html += '<p style="margin:8px 0;"><strong>报名时间：</strong>' + new Date(record.created_at).toLocaleString('zh-CN') + '</p>';
+      html += '<hr style="margin:15px 0;border:none;border-top:1px solid #eee;">';
+      html += '<p style="margin:8px 0;font-weight:bold;">表单详情：</p>';
+      html += '<div style="background:#f9f9f9;padding:10px;border-radius:8px;margin-top:10px;">';
+      
+      let totalBase = 0;
+      let totalAdditive = 0;
+      let multipliers = [];
+      
+      for (const [key, value] of Object.entries(formData)) {
+        // Skip empty values or placeholder text
+        if (!value || value === '请选择') continue;
+        
+        // Get field config - form_data key format is 'field_' + field.id
+        // e.g., 'field_field_course_002_13' → field.id = 'field_course_002_13'
+        let field = fieldConfig[key];
+        if (!field) {
+          // Strip one 'field_' prefix and try
+          let stripped = key.startsWith('field_') ? key.substring(6) : key;
+          field = fieldConfig[stripped] || {};
+        }
+        const label = field.field_label || key.replace(/^field_/, '').replace(/_/g, ' ');
+        
+        // Build display value
+        let displayValue = value;
+        let priceInfo = '';
+        
+        if (field.field_type === 'select' && field.options) {
+          // Check if option has price info
+          let optionPrices = field.option_prices;
+          if (typeof optionPrices === 'string') {
+            try { optionPrices = JSON.parse(optionPrices); } catch(e) { optionPrices = {}; }
+          }
+          if (optionPrices && optionPrices[value]) {
+            const optInfo = optionPrices[value];
+            if (typeof optInfo === 'object') {
+              if (optInfo.price > 0 && optInfo.multiplier !== 1) {
+                priceInfo = ' (+¥' + optInfo.price + ', ×' + optInfo.multiplier + ')';
+                totalAdditive += optInfo.price;
+                multipliers.push(optInfo.multiplier);
+              } else if (optInfo.price > 0) {
+                priceInfo = ' (+¥' + optInfo.price + ')';
+                totalAdditive += optInfo.price;
+              } else if (optInfo.multiplier !== 1) {
+                priceInfo = ' (×' + optInfo.multiplier + ')';
+                multipliers.push(optInfo.multiplier);
+              }
+            } else if (optInfo > 0) {
+              priceInfo = ' (+¥' + optInfo + ')';
+              totalAdditive += optInfo;
+            }
+          }
+          displayValue = value + priceInfo;
+        } else if (field.price > 0) {
+          displayValue = value + ' (+¥' + field.price + ')';
+          totalAdditive += field.price;
+        }
+        
+        html += '<p style="margin:6px 0;padding-left:10px;"><span style="color:#666;">' + label + '：</span>' + displayValue + '</p>';
+      }
+      
+      html += '</div>';
+      
+      // Fee breakdown
+      const basePrice = record.total_price || 0;
+      let calcExplanation = '';
+      if (totalAdditive > 0 || multipliers.length > 0) {
+        const multiplierProduct = multipliers.reduce((a, b) => a * b, 1);
+        if (multiplierProduct !== 1) {
+          calcExplanation = ' (基本费用' + (basePrice > 0 ? ' + ¥' + totalAdditive + ') × ' + multipliers.join(' × ') + ' = ¥' + basePrice : '');
+        } else if (totalAdditive > 0) {
+          calcExplanation = ' (基本费用 + ¥' + totalAdditive + ' = ¥' + basePrice + ')';
+        }
+      }
+      html += '<p style="margin:10px 0;color:#888;font-size:0.9rem;">费用计算：¥' + basePrice + calcExplanation + '</p>';
+      html += '</div>';
+      
+      document.getElementById('recordDetailContent').innerHTML = html;
+      document.getElementById('recordDetailModal').classList.add('show');
+    }
+    
+    // Export records to WPS/Excel
+    async function exportRecords() {
+      if (records.length === 0) {
+        alert('暂无预约记录可导出');
+        return;
+      }
+      
+      try {
+        // Call export API
+        const date = document.getElementById('search-date').value;
+        const name = document.getElementById('search-name').value;
+        let url = '/api/booking/export?format=xlsx';
+        if (date) url += '&booking_date=' + date;
+        if (name) url += '&student_name=' + name;
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('导出失败');
+        
+        // Download file
+        const blob = await res.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = '预约记录_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+      } catch(e) {
+        alert('导出失败: ' + e.message);
+      }
+    }
+    
+    function closeRecordDetailModal() {
+      document.getElementById('recordDetailModal').classList.remove('show');
+    }
+    
+    // Edit record
+    // Edit booking record - open modal with form fields
+    async function editRecord(id) {
+      var record = records.find(function(r) { return r.id === id; });
+      if (!record) return;
+      
+      // Fetch course details
+      try {
+        var courseRes = await fetch('/api/booking/course/' + record.course_id);
+        var courseData = await courseRes.json();
+        if (!courseData.success) {
+          alert('获取课程信息失败');
+          return;
+        }
+        
+        var formData = record.form_data;
+        if (typeof formData === 'string') {
+          try { formData = JSON.parse(formData); } catch(e) { formData = {}; }
+        }
+        
+        var fields = courseData.fields || [];
+        var course = courseData.course || {};
+        
+        // Build form fields HTML
+        var formFieldsHtml = '';
+        for (var i = 0; i < fields.length; i++) {
+          var f = fields[i];
+          var val = formData['field_' + f.id] || formData[f.id] || '';
+          if (!val) continue;
+          
+          if (f.field_type === 'select') {
+            var opts = (f.options || '').split(',');
+            formFieldsHtml += '<div style="margin-bottom:12px;">';
+            formFieldsHtml += '<label style="display:block;margin-bottom:4px;font-weight:500;">' + f.field_label + '</label>';
+            formFieldsHtml += '<select id="editf_' + f.id + '" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">';
+            formFieldsHtml += '<option value="">请选择</option>';
+            for (var j = 0; j < opts.length; j++) {
+              formFieldsHtml += '<option value="' + opts[j] + '"' + (val === opts[j] ? ' selected' : '') + '>' + opts[j] + '</option>';
+            }
+            formFieldsHtml += '</select></div>';
+          } else if (f.field_type === 'textarea') {
+            formFieldsHtml += '<div style="margin-bottom:12px;">';
+            formFieldsHtml += '<label style="display:block;margin-bottom:4px;font-weight:500;">' + f.field_label + '</label>';
+            formFieldsHtml += '<textarea id="editf_' + f.id + '" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;" rows="2">' + val + '</textarea></div>';
+          } else {
+            formFieldsHtml += '<div style="margin-bottom:12px;">';
+            formFieldsHtml += '<label style="display:block;margin-bottom:4px;font-weight:500;">' + f.field_label + '</label>';
+            formFieldsHtml += '<input type="' + (f.field_type || 'text') + '" id="editf_' + f.id + '" value="' + val.replace(/"/g, '&quot;') + '" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;"></div>';
+          }
+        }
+        
+        // Show modal
+        var modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+        modal.innerHTML = '<div style="background:white;padding:20px;border-radius:8px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto;">' +
+          '<h3 style="margin:0 0 15px;">编辑预约</h3>' +
+          '<div id="editfrm"></div>' +
+          '<div style="text-align:center;margin-top:15px;">' +
+          '<button id="sbtbtn" style="background:#0039A6;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;margin-right:10px;">保存</button>' +
+          '<button id="cncbtn" style="background:#999;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;">取消</button>' +
+          '</div></div>';
+        document.body.appendChild(modal);
+        
+        document.getElementById('editfrm').innerHTML = formFieldsHtml;
+        document.getElementById('sbtbtn').onclick = function() {
+          var newFormData = {};
+          var inputs = document.querySelectorAll('#editfrm input, #editfrm select, #editfrm textarea');
+          for (var k = 0; k < inputs.length; k++) {
+            var inp = inputs[k];
+            var kkey = inp.id.replace('editf_', '');
+            newFormData['field_' + kkey] = inp.value;
+          }
+          fetch('/api/booking/record/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({form_data: newFormData})
+          }).then(function(res) { return res.json(); }).then(function(data) {
+            if (data.success) {
+              alert('修改成功');
+              document.body.removeChild(modal);
+              loadRecords();
+            } else {
+              alert('修改失败');
+            }
+          }).catch(function() { alert('修改失败'); });
+        };
+        document.getElementById('cncbtn').onclick = function() {
+          document.body.removeChild(modal);
+        };
+        
+      } catch(e) {
+        alert('加载失败');
+      }
+    }
+    
+    // Submit admin edit
+    function submitAdminEditRecord(id) {
+      var formData = {};
+      var inputs = document.querySelectorAll('#adminEditFormContent input, #adminEditFormContent select, #adminEditFormContent textarea');
+      for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var key = input.id.replace('admin_edit_', '');
+        formData['field_' + key] = input.value;
+      }
+      
+      fetch('/api/booking/record/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form_data: formData })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('修改成功');
+          var modal = document.getElementById('adminEditModal');
+          if (modal) document.body.removeChild(modal);
+          loadRecords();
+        } else {
+          showToast(data.error || '修改失败');
+        }
+      })
+      .catch(function() {
+        showToast('修改失败');
+      });
+    }
+    
+    // Delete record
+    async function deleteRecord(id) {
+      if (!confirm('确定删除该预约记录？')) return;
+      try {
+        const res = await fetch('/api/booking/record/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          loadRecords();
+        } else {
+          alert(data.error || '删除失败');
+        }
+      } catch(e) {
+        alert('删除失败');
+      }
+    }
+    
+    // Close modal on outside click
+    document.getElementById('courseModal').addEventListener('click', (e) => {
+      if (e.target.id === 'courseModal') closeCourseModal();
+    });
+    
+    document.getElementById('recordDetailModal').addEventListener('click', (e) => {
+      if (e.target.id === 'recordDetailModal') closeRecordDetailModal();
+    });
+  </script>
+</body>
+</html>

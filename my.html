@@ -75,9 +75,19 @@
           <span class="menu-text">管理后台</span>
           <span class="menu-arrow">›</span>
         </div>
-        <div class="menu-item" onclick="showMyCourses()">
-          <span class="menu-icon">📚</span>
-          <span class="menu-text">我的课程</span>
+        <div class="menu-item" onclick="showMyBookings()">
+          <span class="menu-icon">📅</span>
+          <span class="menu-text">我的约课</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="showMyProfile()">
+          <span class="menu-icon">📋</span>
+          <span class="menu-text">个人档案</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item" onclick="showFamilyProfiles()">
+          <span class="menu-icon">👨‍👩‍👧‍👦</span>
+          <span class="menu-text">家庭成员</span>
           <span class="menu-arrow">›</span>
         </div>
         <div class="menu-item" onclick="showMyPrizes()">
@@ -229,16 +239,21 @@
               if (serverData.success && serverData.user) {
                 currentUser = serverData.user;
                 localStorage.setItem('ski_user', JSON.stringify(currentUser));
+                showUserProfile(currentUser);
               } else {
-                currentUser = localData;
+                // Server says user invalid, clear localStorage and reset
+                localStorage.removeItem('ski_user');
+                currentUser = null;
+                resetLoginButton();
               }
             } catch (e) {
               currentUser = localData;
+              showUserProfile(currentUser);
             }
           } else {
             currentUser = localData;
+            showUserProfile(currentUser);
           }
-          showUserProfile(currentUser);
         } catch (e) {
           localStorage.removeItem('ski_user');
           resetLoginButton();
@@ -346,6 +361,14 @@ function updateProfileAPI(user) {
 }
 
 function showUserProfile(user) {
+      if (!user || !user.phone) {
+        // Not logged in
+        document.getElementById('profile-name').textContent = '未登录';
+        document.getElementById('profile-phone').textContent = '';
+        document.getElementById('avatar').innerHTML = '👤';
+        resetLoginButton();
+        return;
+      }
       var avatarEl = document.getElementById('avatar');
       if (user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:'))) {
         avatarEl.innerHTML = '<img src="' + user.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
@@ -537,7 +560,838 @@ function showUserProfile(user) {
       setTimeout(function() { toast.remove(); }, 3000);
     }
     
-    function showMyCourses() { showToast('我的课程功能开发中...'); }
+    function showMyBookings() {
+      if (!currentUser || !currentUser.phone) { showToast('请先登录'); return; }
+      
+      // Show loading
+      showToast('加载中...');
+      
+      // Fetch user's booking records and courses info
+      Promise.all([
+        fetch('/api/booking/records?phone=' + encodeURIComponent(currentUser.phone) + '&limit=50'),
+        fetch('/api/booking/admin/courses') // Get all courses to get current dates
+      ])
+      .then(function(responses) {
+        return Promise.all(responses.map(function(r) { return r.json(); }));
+      })
+      .then(function(results) {
+        var recordsData = results[0];
+        var coursesData = results[1];
+        
+        if (!recordsData.success || !recordsData.records || recordsData.records.length === 0) {
+          showToast('暂无预约记录');
+          return;
+        }
+        
+        // Build course map for quick lookup
+        var courseMap = {};
+        if (coursesData.success && coursesData.courses) {
+          coursesData.courses.forEach(function(c) {
+            courseMap[c.id] = c;
+          });
+        }
+        
+        showBookingListModal(recordsData.records, courseMap);
+      })
+      .catch(function(err) {
+        showToast('加载失败');
+      });
+    }
+    
+    // Format date for display: 2026-04-27T10:30 -> 2026-04-27 10:30
+    function formatDateTime(dt) {
+      if (!dt) return '';
+      return dt.replace('T', ' ').slice(0, 16);
+    }
+    
+    function showBookingListModal(records, courseMap) {
+      courseMap = courseMap || {};
+      
+      var html = '<div style="padding:20px;max-height:70vh;overflow-y:auto;">';
+      html += '<h3 style="margin-bottom:20px;color:#0039A6;">📅 我的约课</h3>';
+      
+      var today = new Date().toISOString().slice(0, 10);
+      
+      for (var i = 0; i < records.length; i++) {
+        var r = records[i];
+        
+        // Get fresh course dates from course map (not stored dates)
+        var course = courseMap[r.course_id] || {};
+        var courseStartDate = course.start_date || r.booking_date || '';
+        var courseEndDate = course.end_date || '';
+        var todayStr = today;
+        
+        // Determine course status
+        var isEnded = courseEndDate && courseEndDate < todayStr; // 超过结束日期
+        var isNotStarted = courseStartDate && courseStartDate > todayStr; // 未开始（可以编辑）
+        var isOngoing = courseStartDate && !isEnded && !isNotStarted; // 进行中（已开始未结束）
+        
+        // Can edit if: 未开始状态（无论是否已取消，只要课程未开始都可以编辑）
+        var canEdit = isNotStarted && courseStartDate;
+        
+        // Parse form_data
+        var formData = r.form_data;
+        if (typeof formData === 'string') {
+          try { formData = JSON.parse(formData); } catch(e) { formData = {}; }
+        }
+        
+        html += '<div style="background:#f9f9f9;padding:15px;border-radius:12px;margin-bottom:15px;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+        html += '<div><strong style="font-size:1.1rem;">' + r.course_name + '</strong>';
+        html += '<p style="margin:5px 0;color:#666;font-size:0.9rem;">' + (r.student_name || '') + ' | ' + formatDateTime(courseStartDate) + (courseEndDate ? ' 至 ' + formatDateTime(courseEndDate) : '') + '</p>';
+        html += '<p style="margin:3px 0;color:#888;font-size:0.85rem;">费用：¥' + (r.total_price || 0) + '</p>';
+        html += '</div>';
+        html += '<div>';
+        // Status display: if course hasn't started, show different status text
+        if (isNotStarted) {
+          // Course hasn't started - show status based on booking status
+          var displayStatus = r.status === 'confirmed' ? '待开始' : r.status === 'cancelled' ? '已取消(可编辑)' : '待确认';
+          var statusColor = r.status === 'confirmed' ? '#52c41a' : r.status === 'cancelled' ? '#ff9800' : '#faad14';
+          html += '<span style="background:' + statusColor + ';color:white;padding:4px 10px;border-radius:12px;font-size:0.8rem;white-space:nowrap;">' + displayStatus + '</span>';
+        } else {
+          var statusColor = r.status === 'confirmed' ? '#52c41a' : r.status === 'cancelled' ? '#ff4d4f' : '#faad14';
+          html += '<span style="background:' + statusColor + ';color:white;padding:4px 10px;border-radius:12px;font-size:0.8rem;white-space:nowrap;">' + (r.status === 'confirmed' ? '已确认' : r.status === 'cancelled' ? '已取消' : '待确认') + '</span>';
+        }
+        html += '</div></div>';
+        
+        if (canEdit) {
+          html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;text-align:right;">';
+          html += '<button onclick="editMyBooking(\'' + r.id + '\', \'' + r.course_id + '\')" style="background:#0039A6;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;margin-right:10px;">编辑</button>';
+          // Only show Cancel button if not already cancelled
+          if (r.status !== 'cancelled') {
+            html += '<button onclick="cancelMyBooking(\'' + r.id + '\', \'' + courseStartDate + '\')" style="background:#ff4d4f;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;">取消</button>';
+          }
+          html += '</div>';
+        } else if (r.status !== 'cancelled') {
+          var statusText = isEnded ? '课程已结束' : (isOngoing ? '课程已开始' : '课程未开始');
+          var statusColor = isEnded ? '#999' : (isOngoing ? '#ff9800' : '#52c41a');
+          html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;text-align:right;"><span style="color:' + statusColor + ';font-size:0.85rem;">' + statusText + '</span></div>';
+        }
+        html += '</div>';
+      }
+      
+      html += '</div>';
+      
+      // Add bottom buttons
+      html += '<div style="text-align:center;margin-top:20px;padding-top:15px;border-top:1px solid #eee;">';
+      html += '<button onclick="document.body.removeChild(document.getElementById(\'bookingListModal\'))" style="background:#999;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;">关闭</button>';
+      html += '</div>';
+      
+      // Show in modal
+      var modal = document.createElement('div');
+      modal.id = 'bookingListModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+      modal.innerHTML = '<div style="background:white;border-radius:16px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;padding:24px;position:relative;">' +
+        '<div onclick="document.body.removeChild(this.parentNode.parentNode)" style="position:absolute;top:15px;right:20px;font-size:1.5rem;color:#999;cursor:pointer;">×</div>' +
+        html +
+        '</div>';
+      document.body.appendChild(modal);
+    }
+    
+    function showMyProfile() {
+      if (!currentUser || !currentUser.phone) { showToast('请先登录'); return; }
+      
+      var u = currentUser;
+      var html = '<div style="padding:20px;max-height:80vh;overflow-y:auto;">';
+      html += '<h3 style="margin-bottom:20px;color:#0039A6;">📋 个人档案</h3>';
+      html += '<div id="profileFieldsContainer">';
+      html += '<div class="loading">正在加载字段...</div>';
+      html += '</div>';
+      html += '<div style="text-align:center;margin-top:20px;">';
+      html += '<button onclick="saveMyProfile()" style="background:#0039A6;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;margin-right:10px;">保存</button>';
+      html += '<button onclick="document.body.removeChild(document.getElementById(\'profileModal\'))" style="background:#999;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;">取消</button>';
+      html += '</div></div>';
+      
+      var modal = document.createElement('div');
+      modal.id = 'profileModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+      modal.innerHTML = '<div style="background:white;border-radius:16px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;padding:24px;position:relative;">' +
+        '<div onclick="document.body.removeChild(this.parentNode.parentNode)" style="position:absolute;top:15px;right:20px;font-size:1.5rem;color:#999;cursor:pointer;">×</div>' +
+        html +
+        '</div>';
+      document.body.appendChild(modal);
+      
+      // Load profile fields dynamically
+      loadProfileFieldsForForm(u);
+    }
+    
+    // Load profile fields from backend and render form
+    window.loadProfileFieldsForForm = function(user) {
+      fetch('/api/profile-fields')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success && data.fields) {
+            renderProfileFieldsForm(data.fields, user);
+          } else {
+            // Fallback to hardcoded fields
+            renderProfileFieldsForm([
+              {id: 'name', field_label: '姓名', field_type: 'text', placeholder: '请输入姓名', hint: '用于证书和身份验证'},
+              {id: 'gender', field_label: '性别', field_type: 'text'},
+              {id: 'phone', field_label: '电话', field_type: 'tel'},
+              {id: 'id_card', field_label: '身份证号码', field_type: 'text'},
+              {id: 'height', field_label: '身高', field_type: 'number'},
+              {id: 'weight', field_label: '体重', field_type: 'number'},
+              {id: 'school', field_label: '就读学校', field_type: 'text'},
+              {id: 'grade', field_label: '年级', field_type: 'text'},
+              {id: 'age', field_label: '年龄', field_type: 'number'}
+            ], user);
+          }
+        })
+        .catch(function() {
+          // Fallback on error
+          renderProfileFieldsForm([
+            {id: 'name', field_label: '姓名', field_type: 'text', placeholder: '请输入姓名', hint: '用于证书和身份验证'},
+            {id: 'gender', field_label: '性别', field_type: 'text'},
+            {id: 'phone', field_label: '电话', field_type: 'tel'},
+            {id: 'id_card', field_label: '身份证号码', field_type: 'text'},
+            {id: 'height', field_label: '身高', field_type: 'number'},
+            {id: 'weight', field_label: '体重', field_type: 'number'},
+            {id: 'school', field_label: '就读学校', field_type: 'text'},
+            {id: 'grade', field_label: '年级', field_type: 'text'},
+            {id: 'age', field_label: '年龄', field_type: 'number'}
+          ], user);
+        });
+    }
+    
+    // Render profile form fields dynamically
+    window.renderProfileFieldsForm = function(fields, user) {
+      var html = '';
+      var u = user || currentUser;
+      
+      fields.forEach(function(f) {
+        var value = u[f.id] || '';
+        var isAutoCalc = (f.id === 'gender' || f.id === 'age');
+        var isReadOnly = isAutoCalc;
+        var hint = f.hint || '';
+        
+        if (f.id === 'phone') {
+          hint = '紧急联系方式';
+        }
+        
+        var inputStyle = 'width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;';
+        if (isReadOnly) inputStyle += 'background:#f5f5f5;';
+        
+        html += '<div style="margin-bottom:15px;"><label style="display:block;margin-bottom:5px;font-weight:500;">' + f.field_label + '</label>';
+        
+        if (f.field_type === 'select' && f.options) {
+          var opts = f.options.split(',');
+          html += '<select id="prof_' + f.id + '" style="' + inputStyle + '">';
+          html += '<option value="">请选择</option>';
+          opts.forEach(function(o) {
+            o = o.trim();
+            html += '<option value="' + o + '"' + (value === o ? ' selected' : '') + '>' + o + '</option>';
+          });
+          html += '</select>';
+        } else if (f.field_type === 'number') {
+          html += '<input type="number" id="prof_' + f.id + '" value="' + value + '" placeholder="' + (f.placeholder || '') + '" style="' + inputStyle + '">';
+        } else if (f.field_type === 'tel') {
+          html += '<input type="tel" id="prof_' + f.id + '" value="' + value + '" placeholder="' + (f.placeholder || '') + '" style="' + inputStyle + '">';
+        } else if (f.id_card === 'id_card') {
+          html += '<input type="text" id="prof_id_card" value="' + value + '" placeholder="' + (f.placeholder || '') + '" style="' + inputStyle + '" oninput="updateGenderAndAgeFromIdCard()">';
+        } else {
+          html += '<input type="text" id="prof_' + f.id + '" value="' + value + '" placeholder="' + (f.placeholder || '') + '" style="' + inputStyle + '"' + (isReadOnly ? ' readonly' : '') + '>';
+        }
+        
+        if (hint) {
+          html += '<div style="font-size:0.8rem;color:#999;margin-top:4px;">' + hint + '</div>';
+        }
+        html += '</div>';
+      });
+      
+      // Special handling for ID card - auto trigger calculation
+      document.getElementById('profileFieldsContainer').innerHTML = html;
+      // Call the function directly after innerHTML
+      setTimeout(function() { updateGenderAndAgeFromIdCard(); }, 100);
+    }
+    
+    // Auto-calculate gender and age from ID card number
+    window.updateGenderAndAgeFromIdCard = function() {
+      var idCard = document.getElementById('prof_id_card') ? document.getElementById('prof_id_card').value.trim() : '';
+      var genderInput = document.getElementById('prof_gender');
+      var ageInput = document.getElementById('prof_age');
+      
+      if (!genderInput || !ageInput) return;
+      
+      if (!idCard || idCard.length < 18) {
+        if (genderInput) genderInput.value = '';
+        if (ageInput) ageInput.value = '';
+        return;
+      }
+      
+      // Gender: 17th digit (index 16) - odd=男, even=女
+      var genderDigit = parseInt(idCard.charAt(16));
+      if (genderInput) genderInput.value = genderDigit % 2 === 1 ? '男' : '女';
+      
+      // Age: calculate from birthdate (digits 6-13, format YYYYMMDD)
+      var birthdateStr = idCard.substring(6, 14);
+      if (birthdateStr.length === 8) {
+        var birthYear = parseInt(birthdateStr.substring(0, 4));
+        var birthMonth = parseInt(birthdateStr.substring(4, 6));
+        var birthDay = parseInt(birthdateStr.substring(6, 8));
+        var today = new Date();
+        var age = today.getFullYear() - birthYear;
+        var monthDiff = today.getMonth() + 1 - birthMonth;
+        var dayDiff = today.getDate() - birthDay;
+        if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+          age--;
+        }
+        if (ageInput) ageInput.value = age > 0 ? age : '';
+      }
+    }
+    
+    // Show family member profiles section
+    window.showFamilyProfiles = function() {
+  if (!currentUser || !currentUser.phone) { showToast('请先登录'); return; }
+  loadFamilySlots();
+}
+
+window.loadFamilySlots = function() {
+  fetch('/api/family-slots?phone=' + currentUser.phone)
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.success) {
+        renderFamilySlotsModal(data.slots || {});
+      } else {
+        loadFamilyProfiles();
+      }
+    })
+    .catch(function() {
+      loadFamilyProfiles();
+    });
+}
+
+window.renderFamilySlotsModal = function(slots) {
+  var defaultRoles = ['成员1', '成员2', '成员3', '成员4'];
+  var html = '<div style="padding:20px;max-height:85vh;overflow-y:auto;">';
+  html += '<h3 style="margin-bottom:15px;color:#0039A6;">👨👩👧👦 家庭成员档案 <span style="font-size:0.85rem;color:#666;">（最多4人）</span></h3>';
+  
+  for (var i = 0; i < 4; i++) {
+    var slot = slots[i] || {};
+    var roleName = slot.role_name || defaultRoles[i];
+    var hasData = slot.name ? true : false;
+    var bgColor = hasData ? '#e8f4e8' : '#f8f8f8';
+    var borderColor = hasData ? '#4CAF50' : '#ddd';
+    
+    html += '<div style="background:' + bgColor + ';border:2px solid ' + borderColor + ';border-radius:12px;padding:16px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;margin-bottom:10px;">';
+    html += '<span style="background:#0039A6;color:white;padding:2px 8px;border-radius:10px;font-size:0.75rem;margin-right:8px;">槽位' + (i+1) + '</span>';
+    html += '<input type="text" id="slot_role_' + i + '" value="' + roleName + '" placeholder="如：爸爸、妈妈" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.95rem;">';
+    html += '</div>';
+    
+    if (hasData) {
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.9rem;">';
+      html += '<div><strong>姓名：</strong>' + (slot.name || '-') + '</div>';
+      html += '<div><strong>性别：</strong>' + (slot.gender || '-') + '</div>';
+      html += '<div><strong>年龄：</strong>' + (slot.age || '-') + '</div>';
+      html += '<div><strong>电话：</strong>' + (slot.phone || '-') + '</div>';
+      html += '</div>';
+      html += '<div style="margin-top:10px;display:flex;gap:8px;">';
+      html += '<button onclick="editSlotProfile(' + i + ')" style="flex:1;background:#0039A6;color:white;border:none;padding:8px;border-radius:15px;font-size:0.85rem;cursor:pointer;">编辑档案</button>';
+      html += '<button onclick="clearSlotProfile(' + i + ')" style="flex:1;background:#ff6b35;color:white;border:none;padding:8px;border-radius:15px;font-size:0.85rem;cursor:pointer;">清空</button>';
+      html += '</div>';
+    } else {
+      html += '<div style="text-align:center;padding:15px;color:#999;font-size:0.9rem;">';
+      html += '<div style="margin-bottom:10px;">暂未填写</div>';
+      html += '<button onclick="editSlotProfile(' + i + ')" style="background:#0039A6;color:white;border:none;padding:10px 25px;border-radius:20px;font-size:0.95rem;cursor:pointer;">+ 添加成员</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  html += '<div style="text-align:center;margin-top:15px;">';
+  html += '<button onclick="document.body.removeChild(document.getElementById(\'familyModal\'))" style="background:#999;color:white;border:none;padding:10px 30px;border-radius:20px;font-size:0.95rem;cursor:pointer;">关闭</button>';
+  html += '</div></div>';
+  
+  var modal = document.createElement('div');
+  modal.id = 'familyModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = '<div style="background:white;border-radius:16px;width:92%;max-width:480px;max-height:92vh;overflow-y:auto;padding:20px;position:relative;">' +
+    '<div onclick="document.body.removeChild(this.parentNode.parentNode)" style="position:absolute;top:12px;right:18px;font-size:1.5rem;color:#999;cursor:pointer;">×</div>' +
+    html + '</div>';
+  document.body.appendChild(modal);
+}
+
+window.editSlotProfile = function(slotIndex) {
+  var modal = document.getElementById('familyModal');
+  if (modal) document.body.removeChild(modal);
+  
+  var html = '<div style="padding:15px;max-height:85vh;overflow-y:auto;">';
+  html += '<h3 style="margin-bottom:15px;color:#0039A6;">📝 成员' + (slotIndex+1) + ' 档案信息</h3>';
+  html += '<div style="margin-bottom:10px;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">姓名 *</label>';
+  html += '<input type="text" id="fam_name" placeholder="请输入姓名" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+  html += '<div style="margin-bottom:10px;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">电话</label>';
+  html += '<input type="tel" id="fam_phone" placeholder="请输入电话" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+  html += '<div style="margin-bottom:10px;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">身份证号码</label>';
+  html += '<input type="text" id="fam_id_card" placeholder="请输入身份证（自动识别性别年龄）" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;" oninput="updateFamilyGenderAge()"></div>';
+  html += '<div style="display:flex;gap:10px;margin-bottom:10px;">';
+  html += '<div style="flex:1;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">性别</label>';
+  html += '<input type="text" id="fam_gender" readonly style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;background:#f5f5f5;"></div>';
+  html += '<div style="flex:1;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">年龄</label>';
+  html += '<input type="text" id="fam_age" readonly style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;background:#f5f5f5;"></div>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:10px;margin-bottom:10px;">';
+  html += '<div style="flex:1;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">身高(cm)</label>';
+  html += '<input type="number" id="fam_height" placeholder="如170" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+  html += '<div style="flex:1;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">体重(kg)</label>';
+  html += '<input type="number" id="fam_weight" placeholder="如60" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+  html += '</div>';
+  html += '<div style="margin-bottom:10px;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">就读学校</label>';
+  html += '<input type="text" id="fam_school" placeholder="请输入学校名称" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+  html += '<div style="margin-bottom:10px;"><label style="display:block;margin-bottom:3px;font-weight:500;font-size:0.9rem;">年级</label>';
+  html += '<input type="text" id="fam_grade" placeholder="如初一/高一" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+  html += '<div style="text-align:center;margin-top:15px;">';
+  html += '<button onclick="saveSlotProfile(' + slotIndex + ')" style="background:#0039A6;color:white;border:none;padding:12px 30px;border-radius:20px;font-size:1rem;cursor:pointer;margin-right:10px;">保存</button>';
+  html += '<button onclick="loadFamilySlots()" style="background:#999;color:white;border:none;padding:12px 30px;border-radius:20px;font-size:1rem;cursor:pointer;">取消</button>';
+  html += '</div></div>';
+  
+  var m = document.createElement('div');
+  m.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2100;display:flex;align-items:center;justify-content:center;';
+  m.innerHTML = '<div style="background:white;border-radius:16px;width:92%;max-width:450px;max-height:92vh;overflow-y:auto;padding:20px;">' + html + '</div>';
+  document.body.appendChild(m);
+}
+
+window.clearSlotProfile = function(slotIndex) {
+  if (!confirm('确定要清空此成员的档案吗？')) return;
+  fetch('/api/family-slot-clear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: currentUser.phone, slot: slotIndex })
+  }).then(function(res) { return res.json(); })
+  .then(function(result) {
+    if (result.success) {
+      showToast('已清空');
+      loadFamilySlots();
+    } else {
+      showToast(result.error || '清空失败');
+    }
+  });
+}
+
+window.updateFamilyGenderAge = function() {
+  var idCard = document.getElementById('fam_id_card') ? document.getElementById('fam_id_card').value.trim() : '';
+  var genderInput = document.getElementById('fam_gender');
+  var ageInput = document.getElementById('fam_age');
+  if (!genderInput || !ageInput) return;
+  
+  if (!idCard || idCard.length < 18) {
+    genderInput.value = '';
+    ageInput.value = '';
+    return;
+  }
+  
+  var genderDigit = parseInt(idCard.charAt(16));
+  genderInput.value = genderDigit % 2 === 1 ? '男' : '女';
+  
+  var birthdateStr = idCard.substring(6, 14);
+  if (birthdateStr.length === 8) {
+    var birthYear = parseInt(birthdateStr.substring(0, 4));
+    var today = new Date();
+    var age = today.getFullYear() - birthYear;
+    ageInput.value = age > 0 ? age : '';
+  }
+}
+
+window.saveSlotProfile = function(slotIndex) {
+  var roleInput = document.getElementById('slot_role_' + slotIndex);
+  var roleName = roleInput ? roleInput.value.trim() : '成员' + (slotIndex + 1);
+  
+  var data = {
+    user_phone: currentUser.phone,
+    slot: slotIndex,
+    role_name: roleName,
+    name: document.getElementById('fam_name').value.trim(),
+    phone: document.getElementById('fam_phone').value.trim(),
+    id_card: document.getElementById('fam_id_card').value.trim(),
+    gender: document.getElementById('fam_gender').value,
+    age: document.getElementById('fam_age').value,
+    height: document.getElementById('fam_height').value.trim(),
+    weight: document.getElementById('fam_weight').value.trim(),
+    school: document.getElementById('fam_school').value.trim(),
+    grade: document.getElementById('fam_grade').value.trim()
+  };
+  
+  if (!data.name) { showToast('请输入姓名'); return; }
+  
+  fetch('/api/family-slot-save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(function(res) { return res.json(); })
+  .then(function(result) {
+    if (result.success) {
+      showToast('保存成功');
+      loadFamilySlots();
+    } else {
+      showToast(result.error || '保存失败');
+    }
+  });
+}
+
+window.requestProfileEdit = function(profileId) {
+      var profile = null;
+      // Find the profile data from current display
+      fetch('/api/family-profiles?phone=' + currentUser.phone)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success && data.profiles) {
+            profile = data.profiles.find(function(p) { return p.id == profileId; });
+            if (profile) {
+              showProfileEditRequestModal(profile);
+            }
+          }
+        });
+    }
+    
+    window.showProfileEditRequestModal = function(profile) {
+      var html = '<div style="padding:20px;max-height:80vh;overflow-y:auto;">';
+      html += '<h3 style="margin-bottom:20px;color:#0039A6;">📝 申请修改档案</h3>';
+      html += '<div style="background:#f8f8f8;border-radius:8px;padding:12px;margin-bottom:15px;">';
+      html += '<strong>档案：</strong>' + (profile.name || '') + ' (' + (profile.relation || '') + ')</div>';
+      html += '<div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-weight:500;">选择要修改的字段</label>';
+      html += '<select id="req_field_name" onchange="showFieldEditPreview(this.value, \'' + profile.id + '\')" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;">';
+      html += '<option value="">请选择</option>';
+      html += '<option value="name">姓名</option>';
+      html += '<option value="relation">关系</option>';
+      html += '<option value="phone">电话</option>';
+      html += '<option value="id_card">身份证号</option>';
+      html += '<option value="height">身高</option>';
+      html += '<option value="weight">体重</option>';
+      html += '<option value="school">学校</option>';
+      html += '<option value="grade">年级</option>';
+      html += '</select></div>';
+      html += '<div id="field_edit_preview" style="margin-bottom:12px;"></div>';
+      html += '<div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-weight:500;">申请原因</label>';
+      html += '<textarea id="req_reason" placeholder="请简述修改原因" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;height:80px;"></textarea></div>';
+      html += '<div style="text-align:center;margin-top:20px;">';
+      html += '<button onclick="submitProfileRequest(\'' + profile.id + '\')" style="background:#0039A6;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;margin-right:10px;">提交申请</button>';
+      html += '<button onclick="document.body.removeChild(document.getElementById(\'requestModal\'))" style="background:#999;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;">取消</button>';
+      html += '</div></div>';
+      
+      var modal = document.createElement('div');
+      modal.id = 'requestModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+      modal.innerHTML = '<div style="background:white;border-radius:16px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;padding:24px;position:relative;">' +
+        '<div onclick="document.body.removeChild(this.parentNode.parentNode)" style="position:absolute;top:15px;right:20px;font-size:1.5rem;color:#999;cursor:pointer;">×</div>' +
+        html +
+        '</div>';
+      document.body.appendChild(modal);
+    }
+    
+    window.showFieldEditPreview = function(fieldName, profileId) {
+      fetch('/api/family-profiles?phone=' + currentUser.phone)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.success && data.profiles) {
+            var profile = data.profiles.find(function(p) { return p.id == profileId; });
+            if (profile) {
+              var currentValue = profile[fieldName] || '';
+              var html = '<div style="background:#fff3cd;border-radius:8px;padding:12px;">';
+              html += '<div style="margin-bottom:8px;"><strong>当前值：</strong>' + currentValue + '</div>';
+              html += '<div><strong>新值：</strong><input type="text" id="req_new_value" placeholder="请输入新值" style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+              html += '</div>';
+              document.getElementById('field_edit_preview').innerHTML = html;
+            }
+          }
+        });
+    }
+    
+    window.submitProfileRequest = function(profileId) {
+      var fieldName = document.getElementById('req_field_name').value;
+      var newValue = document.getElementById('req_new_value').value;
+      var reason = document.getElementById('req_reason').value;
+      
+      if (!fieldName) { showToast('请选择要修改的字段'); return; }
+      if (!newValue) { showToast('请输入新值'); return; }
+      
+      var data = {
+        user_phone: currentUser.phone,
+        profile_id: profileId,
+        request_type: 'edit',
+        field_name: fieldName,
+        old_value: '',
+        new_value: newValue,
+        reason: reason
+      };
+      
+      fetch('/api/profile-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(function(res) { return res.json(); })
+      .then(function(result) {
+        if (result.success) {
+          showToast('申请已提交，等待管理员审核');
+          var modal = document.getElementById('requestModal');
+          if (modal) document.body.removeChild(modal);
+        } else {
+          showToast(result.error || '提交失败');
+        }
+      });
+    }
+    
+    window.saveMyProfile = function() {
+      var data = {
+        phone: currentUser.phone
+      };
+      
+      // Dynamically collect all profile field values
+      var inputs = document.querySelectorAll('#profileFieldsContainer input, #profileFieldsContainer select');
+      inputs.forEach(function(input) {
+        var id = input.id.replace('prof_', '');
+        if (id && id !== 'phone') {
+          data[id] = input.type === 'checkbox' ? input.checked : input.value;
+        }
+      });
+      
+      fetch('/api/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(function(res) { return res.json(); })
+      .then(function(result) {
+        if (result.success) {
+          showToast('保存成功');
+          // Update currentUser
+          if (result.user) {
+            currentUser = result.user;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          }
+          var modal = document.getElementById('profileModal');
+          if (modal) document.body.removeChild(modal);
+        } else {
+          showToast(result.error || '保存失败');
+        }
+      }).catch(function() {
+        showToast('保存失败');
+      });
+    };
+    
+    function editMyBooking(id, courseId) {
+      // Fetch booking details and show edit form
+      fetch('/api/booking/records?limit=50')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+          var record = data.records.find(function(r) { return r.id === id; });
+          if (!record) return;
+          
+          // Get course fields and course info
+          fetch('/api/booking/course/' + courseId)
+            .then(function(res) { return res.json(); })
+            .then(function(courseData) {
+              if (!courseData.success) return;
+              showEditBookingModal(record, courseData.fields, courseData.course);
+            });
+        });
+    }
+    
+    function showEditBookingModal(record, fields, course) {
+      course = course || {};
+      var courseStartDate = course.start_date || record.booking_date || '';
+      var courseEndDate = course.end_date || '';
+      
+      // Parse form_data
+      var formData = record.form_data;
+      if (typeof formData === 'string') {
+        try { formData = JSON.parse(formData); } catch(e) { formData = {}; }
+      }
+      
+      var html = '<div style="padding:20px;">';
+      html += '<h3 style="margin-bottom:20px;color:#0039A6;">✏️ 编辑预约</h3>';
+      html += '<p style="color:#666;margin-bottom:15px;">课程：' + record.course_name + ' | ' + (courseStartDate || '未指定') + (courseEndDate ? ' 至 ' + courseEndDate : '') + '</p>';
+      html += '<div id="editFormContent"></div>';
+      html += '<div id="editPriceInfo" style="background:#f5f5f5;padding:10px;border-radius:8px;margin-bottom:15px;text-align:right;font-size:0.9rem;color:#666;"></div>';
+      html += '<div style="text-align:center;margin-top:20px;">';
+      html += '<button onclick="submitEditBooking(\'' + record.id + '\')" style="background:#0039A6;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;margin-right:10px;">保存修改</button>';
+      html += '<button onclick="closeEditBookingModal()" style="background:#999;color:white;border:none;padding:12px 30px;border-radius:25px;font-size:1rem;cursor:pointer;">取消</button>';
+      html += '</div></div>';
+      
+      var modal = document.createElement('div');
+      modal.id = 'editBookingModal';
+      modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;';
+      modal.innerHTML = '<div style="background:white;border-radius:16px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;padding:24px;position:relative;">' +
+        '<div onclick="document.body.removeChild(this.parentNode.parentNode)" style="position:absolute;top:15px;right:20px;font-size:1.5rem;color:#999;cursor:pointer;">×</div>' +
+        html +
+        '</div>';
+      document.body.appendChild(modal);
+      
+      // Render form fields - show all fields including those with conditions
+      // Store fields data for price calculation
+      window._editFields = fields;
+      
+      var formHtml = '';
+      for (var i = 0; i < fields.length; i++) {
+        var f = fields[i];
+        var val = formData['field_' + f.id] || formData[f.id] || '';
+        // Skip empty fields - only show filled ones
+        if (!val) continue;
+        
+        if (f.field_type === 'select') {
+          var opts = (f.options || '').split(',');
+          var optionPrices = f.option_prices || {};
+          if (typeof optionPrices === 'string') {
+            try { optionPrices = JSON.parse(optionPrices); } catch(e) { optionPrices = {}; }
+          }
+          formHtml += '<div style="margin-bottom:15px;"><label style="display:block;margin-bottom:5px;font-weight:600;">' + f.field_label + '</label>';
+          formHtml += '<select id="edit_' + f.id + '" data-option-prices="' + encodeURIComponent(JSON.stringify(optionPrices)) + '" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;" onchange="updateEditPrice()">';
+          formHtml += '<option value="">请选择</option>';
+          for (var j = 0; j < opts.length; j++) {
+            var optPriceInfo = '';
+            if (optionPrices && optionPrices[opts[j]]) {
+              var op = optionPrices[opts[j]];
+              if (typeof op === 'object') {
+                if (op.price > 0 && op.multiplier !== 1) optPriceInfo = ' (+¥' + op.price + ', ×' + op.multiplier + ')';
+                else if (op.price > 0) optPriceInfo = ' (+¥' + op.price + ')';
+                else if (op.multiplier !== 1) optPriceInfo = ' (×' + op.multiplier + ')';
+              }
+            }
+            formHtml += '<option value="' + opts[j] + '"' + (val === opts[j] ? ' selected' : '') + '>' + opts[j] + optPriceInfo + '</option>';
+          }
+          formHtml += '</select></div>';
+        } else {
+          formHtml += '<div style="margin-bottom:15px;"><label style="display:block;margin-bottom:5px;font-weight:600;">' + f.field_label + '</label>';
+          formHtml += '<input type="' + (f.field_type || 'text') + '" id="edit_' + f.id + '" value="' + val.replace(/"/g, '&quot;') + '" style="width:100%;padding:10px;border:2px solid #ddd;border-radius:8px;box-sizing:border-box;"></div>';
+        }
+      }
+      document.getElementById('editFormContent').innerHTML = formHtml;
+      updateEditPrice();
+    }
+    
+    // Update price display in edit form
+    function updateEditPrice() {
+      var fields = window._editFields || [];
+      var totalAdditive = 0;
+      var multipliers = [];
+      var details = [];
+      
+      for (var i = 0; i < fields.length; i++) {
+        var f = fields[i];
+        var el = document.getElementById('edit_' + f.id);
+        if (!el || !el.value) continue;
+        
+        var optionPrices = f.option_prices || {};
+        if (typeof optionPrices === 'string') {
+          try { optionPrices = JSON.parse(optionPrices); } catch(e) { optionPrices = {}; }
+        }
+        
+        if (optionPrices && optionPrices[el.value]) {
+          var op = optionPrices[el.value];
+          if (typeof op === 'object') {
+            if (op.price > 0) { totalAdditive += op.price; details.push('+' + op.price); }
+            if (op.multiplier > 1) multipliers.push(op.multiplier);
+          } else if (op > 0) {
+            totalAdditive += op;
+            details.push('+' + op);
+          }
+        }
+      }
+      
+      var infoEl = document.getElementById('editPriceInfo');
+      if (infoEl) {
+        if (details.length > 0) {
+          infoEl.innerHTML = '费用明细: ' + details.join(', ') + (multipliers.length > 0 ? ' | 乘数: ' + multipliers.join('×') : '');
+        } else {
+          infoEl.innerHTML = '';
+        }
+      }
+    }
+    
+    window.closeEditBookingModal = function() {
+      var modal = document.getElementById('editBookingModal');
+      if (modal) document.body.removeChild(modal);
+    };
+    
+    window.submitEditBooking = function(id) {
+      var formData = {};
+      var inputs = document.querySelectorAll('#editFormContent input, #editFormContent select');
+      for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var key = input.id.replace('edit_', '');
+        formData['field_' + key] = input.value;
+      }
+      
+      fetch('/api/booking/my/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form_data: formData })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('修改成功');
+          var modal = document.getElementById('editBookingModal');
+          if (modal) document.body.removeChild(modal);
+          showMyBookings();
+        } else {
+          showToast(data.error || '修改失败');
+        }
+      })
+      .catch(function() {
+        showToast('修改失败');
+      });
+    }
+    
+    window.submitEditBooking = function(id) {
+      var formData = {};
+      var inputs = document.querySelectorAll('#editFormContent input, #editFormContent select');
+      for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        var key = input.id.replace('edit_', '');
+        // Use 'field_' + key format to match original form_data
+        formData['field_' + key] = input.value;
+      }
+      
+      fetch('/api/booking/my/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form_data: formData })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('修改成功');
+          var modal = document.getElementById('editBookingModal');
+          if (modal) document.body.removeChild(modal);
+          showMyBookings(); // Refresh
+        } else {
+          showToast(data.error || '修改失败');
+        }
+      })
+      .catch(function() {
+        showToast('修改失败');
+      });
+    };
+    
+    window.cancelMyBooking = function(id, bookingDate) {
+      // Check if booking can be cancelled (future only)
+      if (bookingDate) {
+        var today = new Date().toISOString().slice(0, 10);
+        if (bookingDate < today) {
+          showToast('课程已开始，无法取消');
+          return;
+        }
+      }
+      if (!confirm('确定取消该预约？')) return;
+      fetch('/api/booking/my/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' })
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('已取消');
+          var modal = document.getElementById('bookingListModal');
+          if (modal) document.body.removeChild(modal);
+          showMyBookings(); // Refresh
+        } else {
+          showToast(data.error || '取消失败');
+        }
+      })
+      .catch(function() {
+        showToast('取消失败');
+      });
+    }
     function showMyPrizes() {
       if (!currentUser || !currentUser.phone) { showToast('请先登录'); return; }
       
